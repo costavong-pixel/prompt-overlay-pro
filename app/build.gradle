@@ -1,0 +1,80 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.costavong.promptoverlay"
+    compileSdk 36
+    // Pin to the locally installed current toolchain so offline beta builds
+    // do not fall back to Android Gradle Plugin's older default (35.0.0).
+    buildToolsVersion "36.0.0"
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    defaultConfig {
+        applicationId "com.costavong.promptoverlay"
+        minSdk 26
+        targetSdk 36
+        // Pro alpha; Google Play pricing is configured in the Console.
+        versionCode 37
+        versionName "2.0.0-pro-alpha1"
+        buildConfigField "boolean", "PRO_TEST", "false"
+        resValue "string", "app_name", "Prompt Overlay"
+        manifestPlaceholders = [proEnabled: "false"]
+        testInstrumentationRunner "com.costavong.promptoverlay.pro.ProSmokeRunner"
+
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    signingConfigs {
+        release {
+            def uploadKeystore = System.getenv("PROMPT_OVERLAY_UPLOAD_KEYSTORE")
+            if (uploadKeystore != null && !uploadKeystore.trim().isEmpty()) {
+                storeFile file(uploadKeystore)
+                storePassword System.getenv("PROMPT_OVERLAY_UPLOAD_STORE_PASS")
+                keyAlias System.getenv("PROMPT_OVERLAY_UPLOAD_ALIAS") ?: "promptoverlay-upload"
+                keyPassword System.getenv("PROMPT_OVERLAY_UPLOAD_KEY_PASS")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            // Lets this test app live beside the Play-installed app on the
+            // same phone, with its own overlay permission and local settings.
+            applicationIdSuffix ".protest"
+            buildConfigField "boolean", "PRO_TEST", "true"
+            resValue "string", "app_name", "Prompt Overlay Pro Test"
+            manifestPlaceholders = [proEnabled: "true"]
+            // Only the side-by-side device test is limited to Samsung's ABI.
+            ndk {
+                abiFilters providers.gradleProperty("proTestAbi").getOrElse("arm64-v8a")
+            }
+        }
+        release {
+            minifyEnabled false
+            if (System.getenv("PROMPT_OVERLAY_UPLOAD_KEYSTORE") != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+dependencies {
+    // Bundled, on-device Latin OCR: works without a network connection and is
+    // available immediately after installation.
+    implementation "com.google.mlkit:text-recognition:16.0.1"
+    implementation "androidx.media3:media3-common:1.11.1"
+    implementation "androidx.media3:media3-exoplayer:1.11.1"
+    implementation "androidx.media3:media3-ui:1.11.1"
+    implementation "androidx.core:core:1.17.0"
+    implementation "com.alphacephei:vosk-android:0.3.75@aar"
+    implementation "net.java.dev.jna:jna:5.19.1@aar"
+    testImplementation "junit:junit:4.13.2"
+}

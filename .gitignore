@@ -1,0 +1,21 @@
+# Local Android/Gradle files
+.gradle/
+**/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+__pycache__/
+.DS_Store
+# Signing identities, credentials and generated packages
+.signing/
+test-signing/
+*.keystore
+*.jks
+*.pem
+*.p12
+*.pfx
+.env
+.env.*
+*.apk
+*.aab

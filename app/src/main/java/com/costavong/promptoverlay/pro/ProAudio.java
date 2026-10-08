@@ -44,8 +44,7 @@ final class ProAudio {
                 int idx=decoder.dequeueOutputBuffer(info,10000);
                 if(idx==MediaCodec.INFO_OUTPUT_FORMAT_CHANGED){MediaFormat f=decoder.getOutputFormat();rate=f.getInteger(MediaFormat.KEY_SAMPLE_RATE);channels=f.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
                     if(channels<1||channels>8)throw new IOException("Unsupported audio channel layout.");
-                    sonic=new SonicAudioProcessor();sonic.setSpeed((float)speed);sonic.setPitch(1);sonic.setOutputSampleRateHz(targetRate);
-                    sonic.configure(new AudioProcessor.AudioFormat(rate,channels,C.ENCODING_PCM_16BIT));active=sonic.isActive();sonic.flush();configured=true;moved=true;
+                    sonic=prepareProcessor(rate,channels,speed,targetRate);active=sonic.isActive();configured=true;moved=true;
                 }else if(idx>=0){moved=true;
                     if(info.size>0&&(info.flags&MediaCodec.BUFFER_FLAG_CODEC_CONFIG)==0){
                         if(!configured)throw new IOException("Audio decoder did not supply a format.");
@@ -73,6 +72,15 @@ final class ProAudio {
                 if(active){sonic.queueEndOfStream();while(!sonic.isEnded()){control.check();write(sonic.getOutput(),output);}}}
         }finally{ex.release();if(decoder!=null){try{decoder.stop();}catch(Exception ignored){}decoder.release();}if(sonic!=null)sonic.reset();}
         return new Pcm(destination,targetRate,channels);
+    }
+    static SonicAudioProcessor prepareProcessor(int rate,int channels,double speed,int targetRate)throws AudioProcessor.UnhandledAudioFormatException {
+        SonicAudioProcessor sonic=new SonicAudioProcessor();
+        sonic.setSpeed((float)speed);sonic.setPitch(1);sonic.setOutputSampleRateHz(targetRate);
+        sonic.configure(new AudioProcessor.AudioFormat(rate,channels,C.ENCODING_PCM_16BIT));
+        // Offline PCM starts at zero. Media3 1.11.1 requires stream metadata;
+        // its deprecated no-argument flush throws before audio can be rendered.
+        sonic.flush(AudioProcessor.StreamMetadata.DEFAULT);
+        return sonic;
     }
     private static void feed(ByteBuffer input,SonicAudioProcessor sonic,boolean active,OutputStream output)throws IOException{
         if(active){sonic.queueInput(input);write(sonic.getOutput(),output);}else write(input,output);

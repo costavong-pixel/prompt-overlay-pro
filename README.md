@@ -1,10 +1,12 @@
 # Prompt Overlay Pro
 
 Android teleprompter and local video-editor prototype. Current version:
-**2.0.0-pro-alpha1** (version code 37).
+**2.0.0-pro-alpha2** (version code 38).
 
-This is an alpha. Compilation, lint and six timeline unit tests pass. A
-software-only emulator reached video rendering but did not finish export.
+This is an alpha. Compilation, lint and ten unit tests pass (six timeline and
+four audio-processor checks). Alpha 2 fixes the audio initialization exception
+captured during a five-second phone export. An earlier software-only emulator
+reached video rendering but did not finish export.
 Phone preview/export, audio synchronization, captions and green-screen quality
 still need validation. Purchases and restore are not implemented.
 

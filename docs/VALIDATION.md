@@ -1,8 +1,8 @@
 # Alpha validation
 
-Prompt Overlay Pro alpha 3 — build validation, October 8, 2026
+Prompt Overlay Pro alpha 4 — build validation, October 8, 2026
 
-Version: 2.0.0-pro-alpha3 (code 39)
+Version: 2.0.0-pro-alpha4 (code 40)
 Application ID: com.costavong.promptoverlay.protest
 Device ABI: arm64-v8a; Android 8.0 / API 26 and newer.
 
@@ -36,7 +36,7 @@ PHONE RESULTS — ALPHA 2
   captions and music worked. These reports do not establish all speech
   languages, precise synchronization, fades, effects or long-video behavior.
 
-NEW ALPHA 3 BEHAVIOR — PHONE TEST PENDING
+ALPHA 3 PLAYBACK — PHONE CONFIRMED BY USER
 - Play clip starts the selected original clip in the editor without a render.
   It respects trim/speed/mute and follows the project timeline position.
 - Pause/resume, replay at the clip end, timeline seeking and clip selection.
@@ -45,7 +45,9 @@ NEW ALPHA 3 BEHAVIOR — PHONE TEST PENDING
 - This player plays one source clip, without edits such as crop, grading,
   green screen, captions, graphics, transitions or mixed music. Edited preview
   still renders those changes. Direct playback volume is capped at 100%.
-- No successful native-player UI run is claimed for this new build.
+- The user confirmed the Play clip button works on the phone. Details such as
+  every speed, trim boundary, pause/resume, seeking and clip switching have not
+  each been separately reported as tested.
 
 EMULATOR LIMITATION
 An earlier alpha 1 x86_64 API 30 smoke attempt decoded a frame and started

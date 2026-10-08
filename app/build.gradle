@@ -18,8 +18,8 @@ android {
         minSdk 26
         targetSdk 36
         // Pro alpha; Google Play pricing is configured in the Console.
-        versionCode 39
-        versionName "2.0.0-pro-alpha3"
+        versionCode 40
+        versionName "2.0.0-pro-alpha4"
         buildConfigField "boolean", "PRO_TEST", "false"
         resValue "string", "app_name", "Prompt Overlay"
         manifestPlaceholders = [proEnabled: "false"]

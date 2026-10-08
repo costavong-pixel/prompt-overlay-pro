@@ -1,11 +1,11 @@
 # Prompt Overlay Pro
 
 Android teleprompter and local video-editor prototype. Current version:
-**2.0.0-pro-alpha3** (version code 39).
+**2.0.0-pro-alpha4** (version code 39).
 
-This is an alpha. Alpha 3 adds immediate playback of the selected source clip
-inside the editor, without rendering, and a moving timeline playhead. The new
-phone playback controls still need device testing. Alpha 2 phone testing
+This is an alpha. Alpha 3 added immediate playback of the selected source clip inside the
+editor, without rendering, and the user confirmed the new Play clip button
+works on the phone. Alpha 2 phone testing
 confirmed short 720p and approximately 30-second 1080p exports, trim/edit
 exports, captions and music; this does not validate every language, effect or
 long-video case. Purchases and restore are not implemented.

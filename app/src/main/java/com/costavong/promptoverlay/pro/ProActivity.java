@@ -33,7 +33,7 @@ public final class ProActivity extends Activity {
     private final ExecutorService worker=Executors.newSingleThreadExecutor();private final Handler main=new Handler(Looper.getMainLooper());
     private LinearLayout body;private ImageView preview;private TextView clock,status;private SeekBar seek;private ProgressBar progress;private Tracks tracks;
     private ProProject project;private String selected="",pending="",exportPath="",handled="";private long playheadUs=0;private int stillGeneration=0;
-    private boolean localBusy=false,jobStarting=false;private Bitmap still;private Dialog playback;private ExoPlayer player;
+    private boolean localBusy=false,jobStarting=false,canShowOnboarding=false,guideAutoShown=false,guideSchedulePending=false;private Bitmap still;private Dialog playback;private ExoPlayer player;
     private PlayerView clipPlayerView;private Button clipPlay;private ExoPlayer clipPlayer;private ProClipPlayback clipPlayback;
     private final Runnable clipTick=()->updateClipPlayback();
     private final BroadcastReceiver receiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){jobUpdate();}};
@@ -43,6 +43,10 @@ public final class ProActivity extends Activity {
         if(saved!=null){pending=saved.getString("pending","");selected=saved.getString("selected","");playheadUs=saved.getLong("playhead");exportPath=saved.getString("export","");handled=saved.getString("handled","");load(saved.getString("project",""));}
         else load(getIntent().getStringExtra("project"));screen();consumeShare(getIntent());
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},90);
+        else {canShowOnboarding=true;if(project==null)scheduleFirstUseGuide();}
+    }
+    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults){super.onRequestPermissionsResult(requestCode,permissions,grantResults);
+        if(requestCode==90){canShowOnboarding=true;if(project==null)scheduleFirstUseGuide();}
     }
     @Override protected void onStart(){super.onStart();androidx.core.content.ContextCompat.registerReceiver(this,receiver,new IntentFilter(ProExportService.UPDATE),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);jobUpdate();requestStill();}
     @Override protected void onStop(){syncClipClock();stopClipPlayback();if(player!=null)player.pause();unregisterReceiver(receiver);super.onStop();}
@@ -63,17 +67,55 @@ public final class ProActivity extends Activity {
     private void screen(){stopClipPlayback();stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
         if(Build.VERSION.SDK_INT>=35){scroll.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());scroll.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});scroll.requestApplyInsets();}
         body.addView(text("Prompt Overlay",project==null?28:22,true));if(project==null)body.addView(text("Pro test · purchases are disabled",13,false));
-        pair(body,button(project==null?"Teleprompter":"Back",()->{if(project==null)startActivity(new Intent(this,MainActivity.class).putExtra("open_basic",true));else{project=null;screen();}}),button("Language",this::language));
+        pair(body,button(project==null?"Open teleprompter":"Back",()->{if(project==null)startActivity(new Intent(this,MainActivity.class).putExtra("open_basic",true));else{project=null;screen();}}),button("Language",this::language));
         status=text("",14,false);status.setTextColor(TEAL);body.addView(status);progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);body.addView(progress);progress.setVisibility(View.GONE);
-        if(project==null)library();else editor();jobStatusOnly();}
+        if(project==null)library();else editor();jobStatusOnly();
+        if(project==null&&canShowOnboarding)scheduleFirstUseGuide();}
     private void language(){pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Language")).setSingleChoiceItems(AppLanguage.languageLabels(),AppLanguage.indexOf(this),(d,n)->{AppLanguage.set(this,AppLanguage.codeAt(n));d.dismiss();screen();}).setNegativeButton(tr("Cancel"),null).show();}
-    private void library(){gap(body,12);body.addView(text("Projects",22,true));Button create=button("New project",()->newProject(true));create.setBackground(shape(ACCENT,14));body.addView(create);
-        List<ProProject> projects=ProProject.all(this);if(projects.isEmpty())body.addView(text("No projects yet. Import a video from your preferred camera.",16,false));
+    private void library(){gap(body,8);
+        body.addView(text("Video editor",22,true));
+        body.addView(text("Record with the teleprompter, then edit your video here.",15,false));
+        Button create=button("Edit a video",()->newProject(true));create.setBackground(shape(ACCENT,14));body.addView(create);
+        body.addView(button("How it works",this::showWorkflowGuide));
+        gap(body,8);body.addView(text("Projects",19,true));
+        List<ProProject> projects=ProProject.all(this);
+        if(projects.isEmpty())body.addView(text("No projects yet. Tap Edit a video to choose a recording.",16,false));
         for(ProProject p:projects){LinearLayout card=column();card.setPadding(dp(14),dp(10),dp(14),dp(12));card.setBackground(shape(CARD,18));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(10),0,0);body.addView(card,lp);
             card.addView(text(p.name,18,true));card.addView(text(p.clips.size()+" · "+seconds(p.timeline().durationUs)+"s · "+p.format,14,false));
             pair(card,button("Open",()->{project=p;selected=p.clips.isEmpty()?"":p.clips.get(0).id;playheadUs=0;screen();}),button("Delete",()->new AlertDialog.Builder(this).setMessage(tr("Delete this project and its imported files?"))
                 .setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Delete"),(d,w)->{ProRenderEngine.erase(p.directory(this));screen();}).show()));}
         gap(body,16);LinearLayout footer=row();footer.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));Button privacy=button("Privacy",()->ProPrivacy.show(this));footer.addView(privacy,new LinearLayout.LayoutParams(0,dp(48),1));body.addView(footer);}
+    private void scheduleFirstUseGuide(){
+        if(guideAutoShown||guideSchedulePending||getPreferences(MODE_PRIVATE).getBoolean("workflow_guide_seen",false))return;
+        guideSchedulePending=true;
+        main.postDelayed(()->{guideSchedulePending=false;if(project==null&&!isFinishing()){guideAutoShown=true;showWorkflowGuide();}},250);
+    }
+    private void showWorkflowGuide(){
+        if(project!=null||isFinishing())return;
+        final int[] step={0};
+        final String[] titles={"Step 1 of 3: Record","Step 2 of 3: Import","Step 3 of 3: Edit and export"};
+        final String[] details={
+            "Open the teleprompter and record with your preferred camera app.",
+            "Return here, tap Edit a video, and choose the recording from your phone.",
+            "Add or adjust captions, graphics, and music. Play clip checks the source; Edited preview shows the finished edits. Export to save or share."
+        };
+        final Runnable[] show={null};
+        show[0]=()->{
+            if(project!=null||isFinishing())return;
+            String back=step[0]==0?"Skip":"Previous",next=step[0]==2?"Done":"Next";
+            AlertDialog d=new AlertDialog.Builder(this).setTitle(tr(titles[step[0]])).setMessage(tr(details[step[0]]))
+                .setNegativeButton(tr(back),(dialog,which)->{
+                    if(step[0]==0)getPreferences(MODE_PRIVATE).edit().putBoolean("workflow_guide_seen",true).apply();
+                    else{step[0]--;show[0].run();}
+                }).setPositiveButton(tr(next),(dialog,which)->{
+                    if(step[0]<2){step[0]++;show[0].run();}
+                    else getPreferences(MODE_PRIVATE).edit().putBoolean("workflow_guide_seen",true).apply();
+                }).create();
+            d.setOnCancelListener(dialog->getPreferences(MODE_PRIVATE).edit().putBoolean("workflow_guide_seen",true).apply());
+            d.show();
+        };
+        show[0].run();
+    }
     private void newProject(boolean pick){project=new ProProject();selected="";playheadUs=0;try{project.save(this);}catch(Exception e){error(e);}screen();if(pick)pick("video","video/*");}
     private void editor(){pair(body,button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),button("Import video",()->pick("video","video/*")));
         body.addView(text(project.name,18,true));FrameLayout display=new FrameLayout(this);display.setBackground(shape(0xff080b10,16));body.addView(display,new LinearLayout.LayoutParams(-1,dp(170)));

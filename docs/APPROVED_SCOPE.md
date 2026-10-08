@@ -23,3 +23,5 @@ Basic teleprompter features remain included. Arabic automatic captions are not i
 
 - Add a respectful “Rate Prompt Overlay” prompt after the user has had a chance to use the app successfully. Include “Rate us” and “Not now”; avoid showing it repeatedly after dismissal. This is a future implementation item and is not included in the current alpha build.
 
+
+- Clarify the Basic teleprompter to Pro editor path on the Pro home screen; add a one-time three-step guide (record, import, edit/export) and a persistent “How it works” entry. Included in alpha 5; phone testing remains outstanding.

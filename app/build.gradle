@@ -48,7 +48,7 @@ android {
         debug {
             // Lets this test app live beside the Play-installed app on the
             // same phone, with its own overlay permission and local settings.
-            applicationIdSuffix ".protest"
+            applicationIdSuffix ".proalpha5"
             buildConfigField "boolean", "PRO_TEST", "true"
             resValue "string", "app_name", "Prompt Overlay Pro Test"
             manifestPlaceholders = [proEnabled: "true"]

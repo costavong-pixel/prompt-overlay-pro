@@ -41,7 +41,7 @@ Install JDK 17 and Android SDK platform 36 / build-tools 36.0.0. Set
 ```
 
 The default test APK targets ARM64 and installs as **Prompt Overlay Pro Test**
-(`com.costavong.promptoverlay.protest`) beside the published Basic app. It uses
+(`com.costavong.promptoverlay.proalpha5`) beside the published Basic app. It uses
 the local Android debug signing identity; no keystore is included here.
 
 For an x86_64 emulator:

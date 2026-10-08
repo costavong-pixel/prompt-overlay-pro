@@ -18,3 +18,8 @@ The approved editor scope:
 13. 0.5x, 1x, 1.5x and 2x speed with natural audio pitch and recalculated caption/overlay timing.
 
 Basic teleprompter features remain included. Arabic automatic captions are not included; manual Arabic captions are supported. Cloud AI features, subscriptions and 4K are future work.
+
+## Future UX request
+
+- Add a respectful “Rate Prompt Overlay” prompt after the user has had a chance to use the app successfully. Include “Rate us” and “Not now”; avoid showing it repeatedly after dismissal. This is a future implementation item and is not included in the current alpha build.
+

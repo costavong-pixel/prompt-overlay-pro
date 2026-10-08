@@ -1,14 +1,14 @@
 # Prompt Overlay Pro
 
 Android teleprompter and local video-editor prototype. Current version:
-**2.0.0-pro-alpha2** (version code 38).
+**2.0.0-pro-alpha3** (version code 39).
 
-This is an alpha. Compilation, lint and ten unit tests pass (six timeline and
-four audio-processor checks). Alpha 2 fixes the audio initialization exception
-captured during a five-second phone export. An earlier software-only emulator
-reached video rendering but did not finish export.
-Phone preview/export, audio synchronization, captions and green-screen quality
-still need validation. Purchases and restore are not implemented.
+This is an alpha. Alpha 3 adds immediate playback of the selected source clip
+inside the editor, without rendering, and a moving timeline playhead. The new
+phone playback controls still need device testing. Alpha 2 phone testing
+confirmed short 720p and approximately 30-second 1080p exports, trim/edit
+exports, captions and music; this does not validate every language, effect or
+long-video case. Purchases and restore are not implemented.
 
 ## Features
 
@@ -19,7 +19,11 @@ still need validation. Purchases and restore are not implemented.
 - Trim, split, reorder and join clips; cuts/crossfades; 0.5x–2x speed.
 - Logo/title placement and timing; one music track, volume and fades.
 - Crop/output formats, brightness/contrast/saturation/temperature.
-- Shared rendering path for 720p preview and 720p/1080p MP4 export.
+- Immediate selected-clip playback, pause and timeline seeking, respecting
+  trim, speed and mute. Plays the source clip only; effects, captions, graphics,
+  crossfades and mixed music are included in the rendered edited preview.
+  Direct playback volume is capped at 100%; export supports amplification.
+- Shared rendering path for 720p edited preview and 720p/1080p MP4 export.
 - Experimental green screen with a replacement still image.
 - Local English/French/Spanish speech packs for editable automatic captions.
 - English, French, Spanish and Arabic UI; manual Arabic captions.
@@ -55,7 +59,11 @@ The application can download the optional pack after an explicit user choice.
 
 ## Try it
 
-New project → import a short video → Preview → Export → Save video / Share.
+New project → import a short video → select a clip → Play clip / Pause.
+Use the seek slider or tap the video track to choose a position or clip.
+Use Edited preview to render the full composition, then Export → Save video /
+Share. Selecting another clip or seeking stops current source playback; press
+Play clip to start from the new position.
 Clip, caption, graphics and music controls autosave edits locally.
 
 ## Release status

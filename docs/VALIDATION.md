@@ -1,8 +1,8 @@
 # Alpha validation
 
-Prompt Overlay Pro alpha 2 — build validation, October 8, 2026
+Prompt Overlay Pro alpha 3 — build validation, October 8, 2026
 
-Version: 2.0.0-pro-alpha2 (code 38)
+Version: 2.0.0-pro-alpha3 (code 39)
 Application ID: com.costavong.promptoverlay.protest
 Device ABI: arm64-v8a; Android 8.0 / API 26 and newer.
 
@@ -18,30 +18,46 @@ PASSED
 - Regression control: temporarily restoring the original no-argument flush
   makes all four audio tests fail with the exact exception captured on the
   phone. The corrected call is restored for the delivered APK.
+- Seven clip-player timing tests: trimmed source offsets, faster/slower
+  playback, split source offsets, crossfade timeline offsets, bounded seeking
+  and fractional-millisecond cuts. These validate position mapping, not native
+  player rendering or UI behavior on a phone.
 - APK archive integrity and all bundled native ELF load segments aligned to
   at least 16 KB. See signing/ZIP-alignment checks appended below.
 
-INCOMPLETE — NOT A PRODUCTION RELEASE
-The alpha 1 Android media smoke test ran on an x86_64 API 30 emulator using forced
-software CPU emulation because this environment has no /dev/kvm. It decoded
-one frame, started the video encoder, and did not complete the 720p export.
-The stalled attempt was stopped. This does not establish whether the cause
-is the emulator or application; no successful runtime export is claimed.
-The later smoke checks (audio synchronization/pitch, 1080p, local speech and
-UI launch) consequently have no passing result.
+PHONE RESULTS — ALPHA 2
+- The original five-second export failure was "AudioProcessor must implement
+  at least one #flush() overload." Alpha 2 replaced the deprecated no-argument
+  SonicAudioProcessor flush with StreamMetadata.DEFAULT.
+- User-provided exported MP4: 3.05 seconds, 720 × 1280, H.264 and AAC.
+- User-provided exported MP4: 30.06 seconds, 1080 × 1920, H.264 and stereo
+  48 kHz AAC. Both files passed full host video/audio decoding.
+- The user confirmed editing/trimming worked after export, then confirmed
+  captions and music worked. These reports do not establish all speech
+  languages, precise synchronization, fades, effects or long-video behavior.
 
-PHONE FAILURE FIXED IN SOURCE — RETEST REQUIRED
-An alpha 1 phone recording captured "AudioProcessor must implement at least
-one #flush() overload." during a five-second export. The audio decoder called
-the deprecated no-argument flush method, which Media3 1.11.1 deliberately
-rejects. Alpha 2 initializes the processor with StreamMetadata.DEFAULT.
-The host audio tests exercise that same initialization and real PCM processing.
-They do not establish successful MediaCodec decoding/encoding or complete phone
-export. Retest the same five-second clip at 720p, then 1080p.
+NEW ALPHA 3 BEHAVIOR — PHONE TEST PENDING
+- Play clip starts the selected original clip in the editor without a render.
+  It respects trim/speed/mute and follows the project timeline position.
+- Pause/resume, replay at the clip end, timeline seeking and clip selection.
+  Seeking or selecting another clip stops playback; press Play clip again.
+- Stops/releases playback when leaving the editor or starting a render job.
+- This player plays one source clip, without edits such as crop, grading,
+  green screen, captions, graphics, transitions or mixed music. Edited preview
+  still renders those changes. Direct playback volume is capped at 100%.
+- No successful native-player UI run is claimed for this new build.
+
+EMULATOR LIMITATION
+An earlier alpha 1 x86_64 API 30 smoke attempt decoded a frame and started
+encoding under forced software CPU emulation, but export did not complete.
+The attempt was stopped. No emulator smoke-test pass is claimed.
 
 REQUIRED PHONE TESTS
-- On the Samsung phone: import a short camera video, trim/split it, preview,
-  export 720p and 1080p, then play the saved videos outside the editor.
+- On the Samsung phone: select a video track clip, Play clip, Pause/resume,
+  seek into a trimmed/split clip, switch clips, replay at the end, try speed
+  0.5x/2x and mute, and leave/return to the editor. Confirm no render starts.
+- Check Edited preview/export after playback and confirm captions/music remain
+  present in the saved video.
 - Confirm audio/video synchronization at cuts, crossfades and each speed.
 - Verify captions with each included speech language and edit words/timing.
 - Check Arabic RTL UI/manual captions, logos/images, music mixing/fades,

@@ -14,6 +14,8 @@ import android.widget.*;
 import android.text.InputType;
 import androidx.core.content.FileProvider;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
+import androidx.media3.common.PlaybackException;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.ui.PlayerView;
 import com.costavong.promptoverlay.AppLanguage;
@@ -24,6 +26,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /** Compact project library and four-track manual editor. */
+@androidx.annotation.OptIn(markerClass=androidx.media3.common.util.UnstableApi.class)
 public final class ProActivity extends Activity {
     private final int BG=0xff131720,CARD=0xff202634,INPUT=0xff2b3344,ACCENT=0xff4b67ed,TEAL=0xff8bd4c5;
     private static final int PICK=501,SAVE_VIDEO=502;
@@ -31,6 +34,8 @@ public final class ProActivity extends Activity {
     private LinearLayout body;private ImageView preview;private TextView clock,status;private SeekBar seek;private ProgressBar progress;private Tracks tracks;
     private ProProject project;private String selected="",pending="",exportPath="",handled="";private long playheadUs=0;private int stillGeneration=0;
     private boolean localBusy=false,jobStarting=false;private Bitmap still;private Dialog playback;private ExoPlayer player;
+    private PlayerView clipPlayerView;private Button clipPlay;private ExoPlayer clipPlayer;private ProClipPlayback clipPlayback;
+    private final Runnable clipTick=()->updateClipPlayback();
     private final BroadcastReceiver receiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){jobUpdate();}};
     private String tr(String s){return ProStrings.t(this,s);}private int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
     @Override public void onCreate(Bundle saved){super.onCreate(saved);getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
@@ -39,9 +44,9 @@ public final class ProActivity extends Activity {
         else load(getIntent().getStringExtra("project"));screen();consumeShare(getIntent());
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},90);
     }
-    @Override protected void onStart(){super.onStart();androidx.core.content.ContextCompat.registerReceiver(this,receiver,new IntentFilter(ProExportService.UPDATE),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);jobUpdate();}
-    @Override protected void onStop(){unregisterReceiver(receiver);super.onStop();}
-    @Override protected void onDestroy(){stillGeneration++;worker.shutdownNow();if(player!=null)player.release();if(still!=null)still.recycle();super.onDestroy();}
+    @Override protected void onStart(){super.onStart();androidx.core.content.ContextCompat.registerReceiver(this,receiver,new IntentFilter(ProExportService.UPDATE),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);jobUpdate();requestStill();}
+    @Override protected void onStop(){syncClipClock();stopClipPlayback();if(player!=null)player.pause();unregisterReceiver(receiver);super.onStop();}
+    @Override protected void onDestroy(){stopClipPlayback();stillGeneration++;worker.shutdownNow();if(player!=null)player.release();if(still!=null)still.recycle();super.onDestroy();}
     @Override protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);b.putString("project",project==null?"":project.id);b.putString("selected",selected);b.putString("pending",pending);b.putLong("playhead",playheadUs);b.putString("export",exportPath);b.putString("handled",handled);}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(intent.hasExtra("project")){load(intent.getStringExtra("project"));screen();}consumeShare(intent);}
     @Override public void onBackPressed(){if(project!=null&&!isBusy()){project=null;selected="";screen();}else if(!isBusy())super.onBackPressed();else toast("Wait for the current job or cancel it first.");}
@@ -55,13 +60,13 @@ public final class ProActivity extends Activity {
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(50));lp.setMargins(dp(3),dp(4),dp(3),dp(4));b.setLayoutParams(lp);b.setOnClickListener(v->{if(!isBusy())action.run();else toast("Wait for the current job or cancel it first.");});return b;}
     private void pair(LinearLayout parent,Button...buttons){LinearLayout r=row();for(Button b:buttons){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);lp.setMargins(dp(3),dp(4),dp(3),dp(4));r.addView(b,lp);}parent.addView(r);}
     private void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
-    private void screen(){stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
+    private void screen(){stopClipPlayback();stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
         if(Build.VERSION.SDK_INT>=35){scroll.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());scroll.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});scroll.requestApplyInsets();}
         body.addView(text("Prompt Overlay",project==null?28:22,true));if(project==null)body.addView(text("Pro test · purchases are disabled",13,false));
         pair(body,button(project==null?"Teleprompter":"Back",()->{if(project==null)startActivity(new Intent(this,MainActivity.class).putExtra("open_basic",true));else{project=null;screen();}}),button("Language",this::language));
         status=text("",14,false);status.setTextColor(TEAL);body.addView(status);progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);body.addView(progress);progress.setVisibility(View.GONE);
         if(project==null)library();else editor();jobStatusOnly();}
-    private void language(){new AlertDialog.Builder(this).setTitle(tr("Language")).setSingleChoiceItems(AppLanguage.languageLabels(),AppLanguage.indexOf(this),(d,n)->{AppLanguage.set(this,AppLanguage.codeAt(n));d.dismiss();screen();}).setNegativeButton(tr("Cancel"),null).show();}
+    private void language(){pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Language")).setSingleChoiceItems(AppLanguage.languageLabels(),AppLanguage.indexOf(this),(d,n)->{AppLanguage.set(this,AppLanguage.codeAt(n));d.dismiss();screen();}).setNegativeButton(tr("Cancel"),null).show();}
     private void library(){gap(body,12);body.addView(text("Projects",22,true));Button create=button("New project",()->newProject(true));create.setBackground(shape(ACCENT,14));body.addView(create);
         List<ProProject> projects=ProProject.all(this);if(projects.isEmpty())body.addView(text("No projects yet. Import a video from your preferred camera.",16,false));
         for(ProProject p:projects){LinearLayout card=column();card.setPadding(dp(14),dp(10),dp(14),dp(12));card.setBackground(shape(CARD,18));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(10),0,0);body.addView(card,lp);
@@ -70,14 +75,37 @@ public final class ProActivity extends Activity {
                 .setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Delete"),(d,w)->{ProRenderEngine.erase(p.directory(this));screen();}).show()));}
         gap(body,16);LinearLayout footer=row();footer.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));Button privacy=button("Privacy",()->ProPrivacy.show(this));footer.addView(privacy,new LinearLayout.LayoutParams(0,dp(48),1));body.addView(footer);}
     private void newProject(boolean pick){project=new ProProject();selected="";playheadUs=0;try{project.save(this);}catch(Exception e){error(e);}screen();if(pick)pick("video","video/*");}
-    private void editor(){pair(body,button("Rename",()->{EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),button("Import video",()->pick("video","video/*")));
-        body.addView(text(project.name,18,true));preview=new ImageView(this);preview.setBackground(shape(0xff080b10,16));preview.setScaleType(ImageView.ScaleType.FIT_CENTER);body.addView(preview,new LinearLayout.LayoutParams(-1,dp(170)));
-        clock=text("",14,false);clock.setGravity(Gravity.CENTER);body.addView(clock);seek=new SeekBar(this);seek.setMax(10000);seek.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int value,boolean user){if(user&&!isBusy()){playheadUs=Math.round(project.timeline().durationUs*value/10000.0);clock();}}public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){requestStill();}});body.addView(seek);
+    private void editor(){pair(body,button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),button("Import video",()->pick("video","video/*")));
+        body.addView(text(project.name,18,true));FrameLayout display=new FrameLayout(this);display.setBackground(shape(0xff080b10,16));body.addView(display,new LinearLayout.LayoutParams(-1,dp(170)));
+        preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);display.addView(preview,new FrameLayout.LayoutParams(-1,-1));
+        clipPlayerView=new PlayerView(this);clipPlayerView.setUseController(false);clipPlayerView.setVisibility(View.GONE);display.addView(clipPlayerView,new FrameLayout.LayoutParams(-1,-1));
+        clipPlay=button("Play clip",this::toggleClipPlayback);clipPlay.setBackground(shape(ACCENT,14));body.addView(clipPlay);
+        clock=text("",14,false);clock.setGravity(Gravity.CENTER);body.addView(clock);seek=new SeekBar(this);seek.setMax(10000);seek.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int value,boolean user){if(user&&!isBusy()){playheadUs=Math.round(project.timeline().durationUs*value/10000.0);clock();}}public void onStartTrackingTouch(SeekBar s){syncClipClock();stopClipPlayback();}public void onStopTrackingTouch(SeekBar s){List<ProTimeline.Entry> active=project.timeline().at(playheadUs);if(!active.isEmpty()&&!active.get(active.size()-1).id.equals(selected)){selected=active.get(active.size()-1).id;screen();}else requestStill();}});body.addView(seek);
         tracks=new Tracks();body.addView(tracks,new LinearLayout.LayoutParams(-1,dp(128)));
         HorizontalScrollView clips=new HorizontalScrollView(this);LinearLayout clipRow=row();clips.addView(clipRow);for(int i=0;i<project.clips.size();i++){ProProject.Clip c=project.clips.get(i);Button b=button((i+1)+" · "+c.name,()->{selected=c.id;playheadUs=project.timeline().byId(c.id).startUs;screen();});b.setBackground(shape(c.id.equals(selected)?ACCENT:INPUT,12));clipRow.addView(b,new LinearLayout.LayoutParams(dp(160),dp(50)));}body.addView(clips);
         pair(body,button("Clips",this::clipActions),button("Captions",this::captionActions),button("Graphics",this::graphicActions));pair(body,button("Music",this::musicActions),button("Format",this::format));
-        gap(body,8);Button render=button("Preview",()->job("preview",720,"",""));Button export=button("Export",()->new AlertDialog.Builder(this).setTitle(tr("Export")).setItems(new String[]{"720p · MP4","1080p · MP4"},(d,n)->job("export",n==0?720:1080,"","")).show());export.setBackground(shape(ACCENT,14));pair(body,render,export);
-        body.addView(text("Generating a preview uses the same renderer as export.",13,false));body.addView(text("Changes saved on this phone",13,false));clock();requestStill();}
+        gap(body,8);Button render=button("Edited preview",()->job("preview",720,"",""));Button export=button("Export",()->{pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Export")).setItems(new String[]{"720p · MP4","1080p · MP4"},(d,n)->job("export",n==0?720:1080,"","")).show();});export.setBackground(shape(ACCENT,14));pair(body,render,export);
+        body.addView(text("Play clip starts immediately. Edited preview includes captions, graphics and music.",13,false));body.addView(text("Changes saved on this phone",13,false));clock();requestStill();}
+    private void toggleClipPlayback(){ProProject.Clip c=selected();if(c==null)return;
+        if(clipPlayer!=null){if(clipPlayer.getPlayWhenReady()&&clipPlayer.getPlaybackState()!=Player.STATE_ENDED)pauseClipPlayback();else{if(clipPlayer.getPlaybackState()==Player.STATE_ENDED)clipPlayer.seekTo(0);clipPlayer.play();updateClipPlayback();}return;}
+        ProTimeline.Entry entry=project.timeline().byId(c.id);if(entry==null)return;clipPlayback=new ProClipPlayback(entry);
+        if(playheadUs<entry.startUs||playheadUs>=entry.endUs)playheadUs=entry.startUs;
+        ExoPlayer started=new ExoPlayer.Builder(this).build();clipPlayer=started;clipPlayerView.setPlayer(started);clipPlayerView.setVisibility(View.VISIBLE);
+        started.addListener(new Player.Listener(){
+            @Override public void onIsPlayingChanged(boolean playing){if(clipPlayer==started)updateClipPlayback();}
+            @Override public void onPlaybackStateChanged(int state){if(clipPlayer==started)updateClipPlayback();}
+            @Override public void onPlayerError(PlaybackException e){if(clipPlayer==started){stopClipPlayback();requestStill();error(e);}}
+        });
+        long positionMs=clipPlayback.positionMs(playheadUs);
+        started.setMediaItem(new MediaItem.Builder().setUri(Uri.fromFile(new File(c.path))).setClippingConfiguration(new MediaItem.ClippingConfiguration.Builder()
+            .setStartPositionMs(clipPlayback.startMs).setEndPositionMs(clipPlayback.endMs).build()).build(),positionMs);
+        started.setPlaybackSpeed((float)c.speed);started.setVolume(c.mute?0:(float)Math.max(0,Math.min(1,c.volume)));started.prepare();started.play();updateClipPlayback();
+    }
+    private void syncClipClock(){if(clipPlayer!=null&&clipPlayback!=null&&project!=null){playheadUs=clipPlayback.timelineUs(clipPlayer.getCurrentPosition());clock();}}
+    private void updateClipPlayback(){main.removeCallbacks(clipTick);if(clipPlayer==null)return;syncClipClock();boolean running=clipPlayer.getPlayWhenReady()&&clipPlayer.getPlaybackState()!=Player.STATE_ENDED;
+        if(clipPlay!=null)clipPlay.setText(tr(running?"Pause":"Play clip"));if(running)main.postDelayed(clipTick,100);}
+    private void pauseClipPlayback(){if(clipPlayer!=null){clipPlayer.pause();updateClipPlayback();}}
+    private void stopClipPlayback(){main.removeCallbacks(clipTick);ExoPlayer old=clipPlayer;clipPlayer=null;clipPlayback=null;if(clipPlayerView!=null){clipPlayerView.setPlayer(null);clipPlayerView.setVisibility(View.GONE);}if(old!=null)old.release();if(clipPlay!=null)clipPlay.setText(tr("Play clip"));}
     private void clock(){if(clock==null||project==null)return;long duration=project.timeline().durationUs;playheadUs=Math.max(0,Math.min(Math.max(0,duration-1),playheadUs));clock.setText(seconds(playheadUs)+" / "+seconds(duration)+" s");if(seek!=null)seek.setProgress(duration==0?0:(int)(playheadUs*10000/duration));if(tracks!=null)tracks.invalidate();}
     private static String seconds(long us){return String.format(Locale.US,"%.2f",us/1_000_000.0);}
     private void requestStill(){if(project==null||project.clips.isEmpty()||isBusy())return;int token=++stillGeneration;try{ProProject snapshot=ProProject.from(project.json());long time=playheadUs;
@@ -86,6 +114,7 @@ public final class ProActivity extends Activity {
     private void changed(boolean rebuild){try{project.revision++;project.save(this);exportPath="";if(rebuild)screen();else{clock();requestStill();}}catch(Exception e){error(e);}}
     private ProProject.Clip selected(){ProProject.Clip c=project==null?null:project.clip(selected);if(c==null)toast("Select a clip first.");return c;}
     private void choices(String title,String[] options,java.util.function.IntConsumer action){ScrollView scroll=new ScrollView(this);LinearLayout list=column();list.setPadding(dp(16),dp(8),dp(16),dp(8));list.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(list);
+        pauseClipPlayback();
         AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tr(title)).setView(scroll).setNegativeButton(tr("Cancel"),null).create();
         for(int n=0;n<options.length;n++){final int index=n;Button option=button(options[n],()->{dialog.dismiss();action.accept(index);});option.setMinHeight(dp(54));option.setMaxLines(3);option.setEllipsize(android.text.TextUtils.TruncateAt.END);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(5),0,dp(5));list.addView(option,lp);}
         dialog.show();dialog.getWindow().setBackgroundDrawable(shape(CARD,20));}
@@ -94,6 +123,7 @@ public final class ProActivity extends Activity {
         }catch(Exception e){error(e);}});}
     private interface SaveForm {void save()throws Exception;}
     private void form(String title,LinearLayout content,SaveForm save){ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.addView(content);content.setPadding(dp(20),dp(4),dp(20),dp(20));content.setLayoutDirection(AppLanguage.layoutDirection(this));content.setBackgroundColor(CARD);
+        pauseClipPlayback();
         AlertDialog d=new AlertDialog.Builder(this).setTitle(tr(title)).setView(scroll).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),null).create();d.setOnShowListener(v->{d.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);d.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(b->{try{save.save();d.dismiss();changed(true);}catch(Exception e){error(e);}});});d.show();}
     private EditText field(LinearLayout parent,String label,String value,boolean numeric){EditText e=new EditText(this);e.setTextColor(0xfff5f7fd);e.setHintTextColor(0xffa1adc4);e.setTextSize(16);e.setText(value);e.setBackground(shape(INPUT,12));e.setPadding(dp(12),dp(10),dp(12),dp(10));
         e.setInputType(numeric?InputType.TYPE_CLASS_NUMBER|InputType.TYPE_NUMBER_FLAG_DECIMAL|InputType.TYPE_NUMBER_FLAG_SIGNED:InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_MULTI_LINE);
@@ -159,7 +189,7 @@ public final class ProActivity extends Activity {
             if("video".equals(kind)&&target.timeline().byId(selected)!=null)playheadUs=target.timeline().byId(selected).startUs;target.revision++;target.save(this);
         }catch(Exception e){problem=e.getMessage();try{target.save(this);}catch(Exception ignored){}}String failure=problem;ProProject.Layer layer=logo;main.post(()->{localBusy=false;if(isDestroyed())return;screen();if(failure!=null)toast(failure);if(layer!=null)editLayer(layer,true);});});}
     private static void copy(InputStream in,OutputStream out)throws IOException{if(in==null||out==null)throw new IOException("Cannot open this file.");byte[] b=new byte[65536];int n;while((n=in.read(b))>=0){if(Thread.currentThread().isInterrupted())throw new IOException("Cancelled.");out.write(b,0,n);}}
-    private void job(String kind,int resolution,String clip,String language){if(project.clips.isEmpty()){toast("Import a video first.");return;}try{project.save(this);handled="";
+    private void job(String kind,int resolution,String clip,String language){if(project.clips.isEmpty()){toast("Import a video first.");return;}syncClipClock();stopClipPlayback();try{project.save(this);handled="";
         File jobs=new File(getFilesDir(),"pro/jobs");jobs.mkdirs();File snapshot=new File(jobs,UUID.randomUUID()+".json");try(OutputStream out=new FileOutputStream(snapshot)){out.write(project.json().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}
         Intent i=new Intent(this,ProExportService.class).putExtra("project",project.id).putExtra("snapshot_file",snapshot.getPath()).putExtra("kind",kind).putExtra("resolution",resolution).putExtra("clip",clip).putExtra("language",language);jobStarting=true;startForegroundService(i);status.setText(tr("Starting…"));progress.setVisibility(View.VISIBLE);main.postDelayed(this::jobUpdate,500);
         }catch(Exception e){jobStarting=false;error(e);}}
@@ -168,7 +198,7 @@ public final class ProActivity extends Activity {
     private void jobUpdate(){if(ProExportService.busy||project!=null&&project.id.equals(ProExportService.projectId))jobStarting=false;jobStatusOnly();if(ProExportService.busy||project==null||!project.id.equals(ProExportService.projectId))return;String result=ProExportService.kind+ProExportService.output+ProExportService.error+ProExportService.percent;
         if(result.equals(handled)||result.isEmpty())return;handled=result;if(!ProExportService.error.isEmpty()){toast(ProExportService.error);return;}
         if("captions".equals(ProExportService.kind)){load(project.id);screen();}else if(!ProExportService.output.isEmpty()){exportPath=ProExportService.output;if("preview".equals(ProExportService.kind))play(exportPath);else outputOptions();}}
-    private void play(String path){if(player!=null){player.release();player=null;}Dialog d=new Dialog(this,android.R.style.Theme_Material_NoActionBar);LinearLayout layout=column();layout.setBackgroundColor(BG);PlayerView view=new PlayerView(this);layout.addView(view,new LinearLayout.LayoutParams(-1,0,1));layout.addView(button("Back",d::dismiss));d.setContentView(layout);player=new ExoPlayer.Builder(this).build();view.setPlayer(player);player.setMediaItem(MediaItem.fromUri(Uri.fromFile(new File(path))));player.prepare();player.play();d.setOnDismissListener(v->{if(player!=null){player.release();player=null;}});d.show();d.getWindow().setLayout(-1,-1);playback=d;}
+    private void play(String path){pauseClipPlayback();if(player!=null){player.release();player=null;}Dialog d=new Dialog(this,android.R.style.Theme_Material_NoActionBar);LinearLayout layout=column();layout.setBackgroundColor(BG);PlayerView view=new PlayerView(this);layout.addView(view,new LinearLayout.LayoutParams(-1,0,1));layout.addView(button("Back",d::dismiss));d.setContentView(layout);player=new ExoPlayer.Builder(this).build();view.setPlayer(player);player.setMediaItem(MediaItem.fromUri(Uri.fromFile(new File(path))));player.prepare();player.play();d.setOnDismissListener(v->{if(player!=null){player.release();player=null;}});d.show();d.getWindow().setLayout(-1,-1);playback=d;}
     private void outputOptions(){choices("Finished video",new String[]{"Preview","Save video","Share"},n->{if(n==0)play(exportPath);if(n==1)startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("video/mp4").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,project.name.replaceAll("[\\\\/:*?\"<>|]","_")+".mp4"),SAVE_VIDEO);
             if(n==2){Uri u=FileProvider.getUriForFile(this,getPackageName()+".profiles",new File(exportPath));Intent share=new Intent(Intent.ACTION_SEND).setType("video/mp4").putExtra(Intent.EXTRA_STREAM,u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);share.setClipData(ClipData.newRawUri("Video",u));startActivity(Intent.createChooser(share,tr("Share")));}});}
     private void error(Throwable e){toast(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage());}
@@ -184,6 +214,7 @@ public final class ProActivity extends Activity {
             p.setColor(0xffffffff);p.setStrokeWidth(dp(2));float x=label+w*playheadUs/duration;c.drawLine(x,0,x,getHeight(),p);}
         private void block(Canvas c,long a,long b,int row,float label,float w,float h,long duration){float x=label+w*a/duration,right=label+w*b/duration;c.drawRoundRect(x,row*h+dp(8),Math.max(x+dp(2),right),(row+1)*h-dp(8),dp(5),dp(5),p);}
         @Override public boolean onTouchEvent(android.view.MotionEvent e){if(e.getAction()==android.view.MotionEvent.ACTION_UP&&!isBusy()){float label=dp(70),w=getWidth()-label-dp(8);playheadUs=Math.max(0,Math.min(project.timeline().durationUs-1,(long)((e.getX()-label)/w*project.timeline().durationUs)));int row=(int)(e.getY()/(getHeight()/4f));
+                stopClipPlayback();
                 if(row==0){List<ProTimeline.Entry> active=project.timeline().at(playheadUs);if(!active.isEmpty())selected=active.get(active.size()-1).id;screen();}
                 else if(row==1||row==2){for(ProProject.Layer l:project.layers)if((row==2)=="caption".equals(l.kind)&&l.visible(project.timeline(),playheadUs)){editLayer(l,false);break;}clock();requestStill();invalidate();}
                 else{clock();requestStill();invalidate();}return true;}return true;}

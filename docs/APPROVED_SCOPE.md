@@ -19,7 +19,7 @@ The approved editor scope:
 
 Basic teleprompter features remain included. Arabic automatic captions are not included; manual Arabic captions are supported. Cloud AI features, subscriptions and 4K are future work.
 
-## Alpha 6 UX decision
+## Alpha 7 Graphics help\n\n- Add a small, accessible “i” beside Graphics. It explains how to add a title/logo/image, edit its timing and appearance, and choose a green-screen replacement background. The explanation is translated into English, Spanish, French, and Arabic.\n- Phone test the icon, dialog readability, and translations. Source update only; no APK has been built.\n\n## Alpha 6 UX decision
 
 - Remove the automatic first-launch tutorial and the persistent “How it works” entry.
 - Make the Pro home a direct choice between opening the teleprompter and editing a video; keep saved projects below those actions.

@@ -19,9 +19,10 @@ The approved editor scope:
 
 Basic teleprompter features remain included. Arabic automatic captions are not included; manual Arabic captions are supported. Cloud AI features, subscriptions and 4K are future work.
 
-## Future UX request
+## Alpha 6 UX decision
 
-- Add a respectful “Rate Prompt Overlay” prompt after the user has had a chance to use the app successfully. Include “Rate us” and “Not now”; avoid showing it repeatedly after dismissal. This is a future implementation item and is not included in the current alpha build.
-
-
-- Clarify the Basic teleprompter to Pro editor path on the Pro home screen; add a one-time three-step guide (record, import, edit/export) and a persistent “How it works” entry. Included in alpha 5; phone testing remains outstanding.
+- Remove the automatic first-launch tutorial and the persistent “How it works” entry.
+- Make the Pro home a direct choice between opening the teleprompter and editing a video; keep saved projects below those actions.
+- Wrap long project names to two lines and truncate cleanly when needed.
+- Add a persistent “Rate app” action and one respectful prompt after a video is successfully saved. The prompt appears once and offers “Rate us” and “Not now.”
+- Phone test the home layout, long names, translations, saved-video flow and Play Store rating link. This source update is not a built or tested APK.

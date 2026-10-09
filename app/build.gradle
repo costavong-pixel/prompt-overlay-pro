@@ -18,8 +18,8 @@ android {
         minSdk 26
         targetSdk 36
         // Pro alpha; Google Play pricing is configured in the Console.
-        versionCode 41
-        versionName "2.0.0-pro-alpha5"
+        versionCode 42
+        versionName "2.0.0-pro-alpha6"
         buildConfigField "boolean", "PRO_TEST", "false"
         resValue "string", "app_name", "Prompt Overlay"
         manifestPlaceholders = [proEnabled: "false"]
@@ -48,7 +48,7 @@ android {
         debug {
             // Lets this test app live beside the Play-installed app on the
             // same phone, with its own overlay permission and local settings.
-            applicationIdSuffix ".proalpha5"
+            applicationIdSuffix ".proalpha6"
             buildConfigField "boolean", "PRO_TEST", "true"
             resValue "string", "app_name", "Prompt Overlay Pro Test"
             manifestPlaceholders = [proEnabled: "true"]

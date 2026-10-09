@@ -58,6 +58,22 @@ public final class ProActivity extends Activity {
     private TextView text(String s,int size,boolean bold){TextView t=new TextView(this);t.setText(tr(s));t.setTextColor(0xfff3f5fb);t.setTextSize(size);if(bold)t.setTypeface(null,Typeface.BOLD);t.setPadding(0,dp(6),0,dp(6));return t;}
     private Button button(String label,Runnable action){Button b=new Button(this);b.setText(tr(label));b.setTextSize(14);b.setTextColor(0xfff6f8ff);b.setAllCaps(false);b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));b.setBackground(shape(INPUT,14));
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(50));lp.setMargins(dp(3),dp(4),dp(3),dp(4));b.setLayoutParams(lp);b.setOnClickListener(v->{if(!isBusy())action.run();else toast("Wait for the current job or cancel it first.");});return b;}
+    private void graphicsActionRow(){
+        LinearLayout r=row();
+        Button clips=button("Clips",this::clipActions),captions=button("Captions",this::captionActions),graphics=button("Graphics",this::graphicActions);
+        LinearLayout.LayoutParams weighted=new LinearLayout.LayoutParams(0,dp(50),1);weighted.setMargins(dp(3),dp(4),dp(1),dp(4));r.addView(clips,weighted);
+        weighted=new LinearLayout.LayoutParams(0,dp(50),1);weighted.setMargins(dp(1),dp(4),dp(1),dp(4));r.addView(captions,weighted);
+        LinearLayout cell=row();LinearLayout.LayoutParams main=new LinearLayout.LayoutParams(0,dp(50),1);main.setMargins(dp(1),dp(4),dp(1),dp(4));cell.addView(graphics,main);
+        TextView info=text("i",16,true);info.setGravity(Gravity.CENTER);info.setTextColor(TEAL);info.setBackground(shape(INPUT,24));info.setContentDescription(tr("Graphics help"));
+        info.setOnClickListener(v->{if(!isBusy())graphicsInfo();else toast("Wait for the current job or cancel it first.");});
+        LinearLayout.LayoutParams infoLp=new LinearLayout.LayoutParams(dp(42),dp(50));infoLp.setMargins(dp(1),dp(4),dp(3),dp(4));cell.addView(info,infoLp);
+        LinearLayout.LayoutParams cellLp=new LinearLayout.LayoutParams(0,dp(50),1);r.addView(cell,cellLp);body.addView(r);
+    }
+    private void graphicsInfo(){
+        new AlertDialog.Builder(this).setTitle(tr("Graphics help"))
+            .setMessage(tr("Add a title, logo, or image over your video. Choose Add title or Import logo or image. Use Edit graphics to change when it appears, its position, size, and opacity. Green-screen background lets you choose an image to replace the green background."))
+            .setPositiveButton(tr("Got it"),null).show();
+    }
     private void pair(LinearLayout parent,Button...buttons){LinearLayout r=row();for(Button b:buttons){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);lp.setMargins(dp(3),dp(4),dp(3),dp(4));r.addView(b,lp);}parent.addView(r);}
     private void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
     private void screen(){stopClipPlayback();stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
@@ -92,7 +108,7 @@ public final class ProActivity extends Activity {
         clock=text("",14,false);clock.setGravity(Gravity.CENTER);body.addView(clock);seek=new SeekBar(this);seek.setMax(10000);seek.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int value,boolean user){if(user&&!isBusy()){playheadUs=Math.round(project.timeline().durationUs*value/10000.0);clock();}}public void onStartTrackingTouch(SeekBar s){syncClipClock();stopClipPlayback();}public void onStopTrackingTouch(SeekBar s){List<ProTimeline.Entry> active=project.timeline().at(playheadUs);if(!active.isEmpty()&&!active.get(active.size()-1).id.equals(selected)){selected=active.get(active.size()-1).id;screen();}else requestStill();}});body.addView(seek);
         tracks=new Tracks();body.addView(tracks,new LinearLayout.LayoutParams(-1,dp(128)));
         HorizontalScrollView clips=new HorizontalScrollView(this);LinearLayout clipRow=row();clips.addView(clipRow);for(int i=0;i<project.clips.size();i++){ProProject.Clip c=project.clips.get(i);Button b=button((i+1)+" · "+c.name,()->{selected=c.id;playheadUs=project.timeline().byId(c.id).startUs;screen();});b.setBackground(shape(c.id.equals(selected)?ACCENT:INPUT,12));clipRow.addView(b,new LinearLayout.LayoutParams(dp(160),dp(50)));}body.addView(clips);
-        pair(body,button("Clips",this::clipActions),button("Captions",this::captionActions),button("Graphics",this::graphicActions));pair(body,button("Music",this::musicActions),button("Format",this::format));
+        graphicsActionRow();pair(body,button("Music",this::musicActions),button("Format",this::format));
         gap(body,8);Button render=button("Edited preview",()->job("preview",720,"",""));Button export=button("Export",()->{pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Export")).setItems(new String[]{"720p · MP4","1080p · MP4"},(d,n)->job("export",n==0?720:1080,"","")).show();});export.setBackground(shape(ACCENT,14));pair(body,render,export);
         body.addView(text("Play clip starts immediately. Edited preview includes captions, graphics and music.",13,false));body.addView(text("Changes saved on this phone",13,false));clock();requestStill();}
     private void toggleClipPlayback(){ProProject.Clip c=selected();if(c==null)return;

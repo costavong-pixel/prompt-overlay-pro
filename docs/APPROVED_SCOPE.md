@@ -19,6 +19,11 @@ The approved editor scope:
 
 Basic teleprompter features remain included. Arabic automatic captions are not included; manual Arabic captions are supported. Cloud AI features, subscriptions and 4K are future work.
 
+## Alpha 8 Editor help
+
+- Add small, accessible “i” icons beside Rename, Import video, Play clip, Clips, Captions, Graphics, Music, Format, Edited preview, and Export. Each opens a short explanation translated into English, Spanish, French, and Arabic.
+- Phone test icon placement, dialog readability, and each explanation. Source update only; no APK has been built.
+
 ## Alpha 7 Graphics help\n\n- Add a small, accessible “i” beside Graphics. It explains how to add a title/logo/image, edit its timing and appearance, and choose a green-screen replacement background. The explanation is translated into English, Spanish, French, and Arabic.\n- Phone test the icon, dialog readability, and translations. Source update only; no APK has been built.\n\n## Alpha 6 UX decision
 
 - Remove the automatic first-launch tutorial and the persistent “How it works” entry.

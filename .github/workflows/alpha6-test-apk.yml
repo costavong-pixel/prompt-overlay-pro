@@ -1,0 +1,64 @@
+name: Prompt Overlay Pro alpha 6 test APK
+
+on:
+  push:
+    branches:
+      - alpha6-home-rating-review
+
+permissions:
+  contents: read
+
+jobs:
+  build-test-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out alpha 6 source
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Gradle 8.14.3
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.14.3
+      - name: Install Android API 36 and build tools
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "/usr/local/lib/android/sdk/platform-tools" >> "$GITHUB_PATH"
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Run unit tests, lint, and build debug APK
+        run: gradle --no-daemon --stacktrace :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+      - name: Verify and label the test APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          TOOLS="$ANDROID_HOME/build-tools/36.0.0"
+          "$TOOLS/apksigner" verify --verbose "$APK"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" | grep -E "package: name='com.costavong.promptoverlay.proalpha6' versionCode='42' versionName='2.0.0-pro-alpha6'"
+          mkdir -p deliverables
+          cp "$APK" deliverables/PromptOverlay-Pro-v2.0.0-alpha6.apk
+          sha256sum deliverables/PromptOverlay-Pro-v2.0.0-alpha6.apk | tee deliverables/SHA256SUMS.txt
+          {
+            echo "Version: 2.0.0-pro-alpha6 (42)"
+            echo "Package: com.costavong.promptoverlay.proalpha6"
+            echo "Signing: Android debug key; test only"
+            echo "Unit tests: passed"
+            echo "Lint: passed with existing warnings, if any"
+            echo "APK signature and 16 KB ZIP alignment: verified"
+            cat deliverables/SHA256SUMS.txt
+          } | tee deliverables/BUILD-VALIDATION.txt
+          cat deliverables/BUILD-VALIDATION.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the private test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PromptOverlay-Pro-alpha6-test
+          path: deliverables/
+          if-no-files-found: error
+          retention-days: 7

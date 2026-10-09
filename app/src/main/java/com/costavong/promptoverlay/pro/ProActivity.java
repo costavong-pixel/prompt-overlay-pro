@@ -101,7 +101,6 @@ public final class ProActivity extends Activity {
     private TextView projectName(String value){TextView name=text(value,18,true);name.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);name.setLayoutParams(new LinearLayout.LayoutParams(-1,-2));return name;}
     private void newProject(boolean pick){project=new ProProject();selected="";playheadUs=0;try{project.save(this);}catch(Exception e){error(e);}screen();if(pick)pick("video","video/*");}
     private void editor(){pairControls(body,
-        pairControls(body,
             button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),
             button("Import video",()->pick("video","video/*")));
         preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);display.addView(preview,new FrameLayout.LayoutParams(-1,-1));

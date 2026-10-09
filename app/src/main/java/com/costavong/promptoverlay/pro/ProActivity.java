@@ -33,7 +33,7 @@ public final class ProActivity extends Activity {
     private final ExecutorService worker=Executors.newSingleThreadExecutor();private final Handler main=new Handler(Looper.getMainLooper());
     private LinearLayout body;private ImageView preview;private TextView clock,status;private SeekBar seek;private ProgressBar progress;private Tracks tracks;
     private ProProject project;private String selected="",pending="",exportPath="",handled="";private long playheadUs=0;private int stillGeneration=0;
-    private boolean localBusy=false,jobStarting=false,canShowOnboarding=false,guideAutoShown=false,guideSchedulePending=false;private Bitmap still;private Dialog playback;private ExoPlayer player;
+    private boolean localBusy=false,jobStarting=false;private Bitmap still;private Dialog playback;private ExoPlayer player;
     private PlayerView clipPlayerView;private Button clipPlay;private ExoPlayer clipPlayer;private ProClipPlayback clipPlayback;
     private final Runnable clipTick=()->updateClipPlayback();
     private final BroadcastReceiver receiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){jobUpdate();}};
@@ -43,10 +43,6 @@ public final class ProActivity extends Activity {
         if(saved!=null){pending=saved.getString("pending","");selected=saved.getString("selected","");playheadUs=saved.getLong("playhead");exportPath=saved.getString("export","");handled=saved.getString("handled","");load(saved.getString("project",""));}
         else load(getIntent().getStringExtra("project"));screen();consumeShare(getIntent());
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},90);
-        else {canShowOnboarding=true;if(project==null)scheduleFirstUseGuide();}
-    }
-    @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] grantResults){super.onRequestPermissionsResult(requestCode,permissions,grantResults);
-        if(requestCode==90){canShowOnboarding=true;if(project==null)scheduleFirstUseGuide();}
     }
     @Override protected void onStart(){super.onStart();androidx.core.content.ContextCompat.registerReceiver(this,receiver,new IntentFilter(ProExportService.UPDATE),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);jobUpdate();requestStill();}
     @Override protected void onStop(){syncClipClock();stopClipPlayback();if(player!=null)player.pause();unregisterReceiver(receiver);super.onStop();}
@@ -67,58 +63,30 @@ public final class ProActivity extends Activity {
     private void screen(){stopClipPlayback();stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
         if(Build.VERSION.SDK_INT>=35){scroll.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());scroll.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});scroll.requestApplyInsets();}
         body.addView(text("Prompt Overlay",project==null?28:22,true));if(project==null)body.addView(text("Pro test · purchases are disabled",13,false));
-        pair(body,button(project==null?"Open teleprompter":"Back",()->{if(project==null)startActivity(new Intent(this,MainActivity.class).putExtra("open_basic",true));else{project=null;screen();}}),button("Language",this::language));
+        if(project!=null)body.addView(button("Back",()->{project=null;screen();}));
         status=text("",14,false);status.setTextColor(TEAL);body.addView(status);progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);body.addView(progress);progress.setVisibility(View.GONE);
-        if(project==null)library();else editor();jobStatusOnly();
-        if(project==null&&canShowOnboarding)scheduleFirstUseGuide();}
+        if(project==null)library();else editor();jobStatusOnly();}
     private void language(){pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Language")).setSingleChoiceItems(AppLanguage.languageLabels(),AppLanguage.indexOf(this),(d,n)->{AppLanguage.set(this,AppLanguage.codeAt(n));d.dismiss();screen();}).setNegativeButton(tr("Cancel"),null).show();}
     private void library(){gap(body,8);
-        body.addView(text("Video editor",22,true));
-        body.addView(text("Record with the teleprompter, then edit your video here.",15,false));
-        Button create=button("Edit a video",()->newProject(true));create.setBackground(shape(ACCENT,14));body.addView(create);
-        body.addView(button("How it works",this::showWorkflowGuide));
-        gap(body,8);body.addView(text("Projects",19,true));
+        body.addView(text("Choose what you want to do",22,true));
+        body.addView(text("Use the teleprompter while recording, or edit a video from your camera.",15,false));
+        Button teleprompter=button("Open teleprompter",()->startActivity(new Intent(this,MainActivity.class).putExtra("open_basic",true)));
+        teleprompter.setBackground(shape(ACCENT,14));body.addView(teleprompter);
+        body.addView(button("Edit a video",()->newProject(true)));
+        gap(body,10);body.addView(text("Your projects",19,true));
         List<ProProject> projects=ProProject.all(this);
         if(projects.isEmpty())body.addView(text("No projects yet. Tap Edit a video to choose a recording.",16,false));
         for(ProProject p:projects){LinearLayout card=column();card.setPadding(dp(14),dp(10),dp(14),dp(12));card.setBackground(shape(CARD,18));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(10),0,0);body.addView(card,lp);
-            card.addView(text(p.name,18,true));card.addView(text(p.clips.size()+" · "+seconds(p.timeline().durationUs)+"s · "+p.format,14,false));
+            card.addView(projectName(p.name));card.addView(text(p.clips.size()+" · "+seconds(p.timeline().durationUs)+"s · "+p.format,14,false));
             pair(card,button("Open",()->{project=p;selected=p.clips.isEmpty()?"":p.clips.get(0).id;playheadUs=0;screen();}),button("Delete",()->new AlertDialog.Builder(this).setMessage(tr("Delete this project and its imported files?"))
                 .setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Delete"),(d,w)->{ProRenderEngine.erase(p.directory(this));screen();}).show()));}
-        gap(body,16);LinearLayout footer=row();footer.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));Button privacy=button("Privacy",()->ProPrivacy.show(this));footer.addView(privacy,new LinearLayout.LayoutParams(0,dp(48),1));body.addView(footer);}
-    private void scheduleFirstUseGuide(){
-        if(guideAutoShown||guideSchedulePending||getPreferences(MODE_PRIVATE).getBoolean("workflow_guide_seen",false))return;
-        guideSchedulePending=true;
-        main.postDelayed(()->{guideSchedulePending=false;if(project==null&&!isFinishing()){guideAutoShown=true;showWorkflowGuide();}},250);
-    }
-    private void showWorkflowGuide(){
-        if(project!=null||isFinishing())return;
-        final int[] step={0};
-        final String[] titles={"Step 1 of 3: Record","Step 2 of 3: Import","Step 3 of 3: Edit and export"};
-        final String[] details={
-            "Open the teleprompter and record with your preferred camera app.",
-            "Return here, tap Edit a video, and choose the recording from your phone.",
-            "Add or adjust captions, graphics, and music. Play clip checks the source; Edited preview shows the finished edits. Export to save or share."
-        };
-        final Runnable[] show={null};
-        show[0]=()->{
-            if(project!=null||isFinishing())return;
-            String back=step[0]==0?"Skip":"Previous",next=step[0]==2?"Done":"Next";
-            AlertDialog d=new AlertDialog.Builder(this).setTitle(tr(titles[step[0]])).setMessage(tr(details[step[0]]))
-                .setNegativeButton(tr(back),(dialog,which)->{
-                    if(step[0]==0)getPreferences(MODE_PRIVATE).edit().putBoolean("workflow_guide_seen",true).apply();
-                    else{step[0]--;show[0].run();}
-                }).setPositiveButton(tr(next),(dialog,which)->{
-                    if(step[0]<2){step[0]++;show[0].run();}
-                    else getPreferences(MODE_PRIVATE).edit().putBoolean("workflow_guide_seen",true).apply();
-                }).create();
-            d.setOnCancelListener(dialog->getPreferences(MODE_PRIVATE).edit().putBoolean("workflow_guide_seen",true).apply());
-            d.show();
-        };
-        show[0].run();
-    }
+        gap(body,14);LinearLayout actions=row();
+        for(Button b:new Button[]{button("Language",this::language),button("Rate app",this::openPlayListing),button("Privacy",()->ProPrivacy.show(this))}){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(48),1);lp.setMargins(dp(2),dp(3),dp(2),dp(3));actions.addView(b,lp);}
+        body.addView(actions);body.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));}
+    private TextView projectName(String value){TextView name=text(value,18,true);name.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);name.setLayoutParams(new LinearLayout.LayoutParams(-1,-2));return name;}
     private void newProject(boolean pick){project=new ProProject();selected="";playheadUs=0;try{project.save(this);}catch(Exception e){error(e);}screen();if(pick)pick("video","video/*");}
     private void editor(){pair(body,button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),button("Import video",()->pick("video","video/*")));
-        body.addView(text(project.name,18,true));FrameLayout display=new FrameLayout(this);display.setBackground(shape(0xff080b10,16));body.addView(display,new LinearLayout.LayoutParams(-1,dp(170)));
+        body.addView(projectName(project.name));FrameLayout display=new FrameLayout(this);display.setBackground(shape(0xff080b10,16));body.addView(display,new LinearLayout.LayoutParams(-1,dp(170)));
         preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);display.addView(preview,new FrameLayout.LayoutParams(-1,-1));
         clipPlayerView=new PlayerView(this);clipPlayerView.setUseController(false);clipPlayerView.setVisibility(View.GONE);display.addView(clipPlayerView,new FrameLayout.LayoutParams(-1,-1));
         clipPlay=button("Play clip",this::toggleClipPlayback);clipPlay.setBackground(shape(ACCENT,14));body.addView(clipPlay);
@@ -216,7 +184,7 @@ public final class ProActivity extends Activity {
     private void pick(String kind,String type){pending=kind;Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType(type).addCategory(Intent.CATEGORY_OPENABLE);if("video".equals(kind))intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(intent,PICK);}
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null)return;
         if(request==PICK){ArrayList<Uri> uris=new ArrayList<>();if(data.getClipData()!=null)for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());else if(data.getData()!=null)uris.add(data.getData());importFiles(uris,pending);}
-        if(request==SAVE_VIDEO&&data.getData()!=null){Uri uri=data.getData();String path=exportPath;localBusy=true;status.setText(tr("Save video"));worker.execute(()->{try(InputStream in=new FileInputStream(path);OutputStream out=getContentResolver().openOutputStream(uri)){copy(in,out);main.post(()->toast("Saved."));}catch(Exception e){main.post(()->error(e));}finally{main.post(()->{localBusy=false;if(!isDestroyed())jobStatusOnly();});}});}}
+        if(request==SAVE_VIDEO&&data.getData()!=null){Uri uri=data.getData();String path=exportPath;localBusy=true;status.setText(tr("Save video"));worker.execute(()->{try(InputStream in=new FileInputStream(path);OutputStream out=getContentResolver().openOutputStream(uri)){copy(in,out);main.post(()->{toast("Saved.");main.postDelayed(this::maybePromptForRating,1800);});}catch(Exception e){main.post(()->error(e));}finally{main.post(()->{localBusy=false;if(!isDestroyed())jobStatusOnly();});}});}}
     private void consumeShare(Intent intent){String action=intent.getAction();if(!Intent.ACTION_SEND.equals(action)&&!Intent.ACTION_SEND_MULTIPLE.equals(action))return;if(isBusy()){toast("Wait for the current job or cancel it first.");return;}
         ArrayList<Uri> uris=new ArrayList<>();if(Intent.ACTION_SEND.equals(action)){Uri u=intent.getParcelableExtra(Intent.EXTRA_STREAM);if(u!=null)uris.add(u);}else{ArrayList<Uri> list=intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);if(list!=null)uris.addAll(list);}intent.setAction(null);if(uris.isEmpty())return;newProject(false);importFiles(uris,"video");}
     private String displayName(Uri uri){try(android.database.Cursor c=getContentResolver().query(uri,new String[]{OpenableColumns.DISPLAY_NAME},null,null,null)){if(c!=null&&c.moveToFirst())return c.getString(0);}catch(Exception ignored){}return "Imported file";}
@@ -244,6 +212,13 @@ public final class ProActivity extends Activity {
     private void outputOptions(){choices("Finished video",new String[]{"Preview","Save video","Share"},n->{if(n==0)play(exportPath);if(n==1)startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("video/mp4").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,project.name.replaceAll("[\\\\/:*?\"<>|]","_")+".mp4"),SAVE_VIDEO);
             if(n==2){Uri u=FileProvider.getUriForFile(this,getPackageName()+".profiles",new File(exportPath));Intent share=new Intent(Intent.ACTION_SEND).setType("video/mp4").putExtra(Intent.EXTRA_STREAM,u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);share.setClipData(ClipData.newRawUri("Video",u));startActivity(Intent.createChooser(share,tr("Share")));}});}
     private void error(Throwable e){toast(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage());}
+    private void openPlayListing(){Uri listing=Uri.parse("market://details?id=com.costavong.promptoverlay");try{startActivity(new Intent(Intent.ACTION_VIEW,listing));}catch(ActivityNotFoundException e){startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/apps/details?id=com.costavong.promptoverlay")));}}
+    private void maybePromptForRating(){if(isFinishing()||isDestroyed())return;android.content.SharedPreferences prefs=getPreferences(MODE_PRIVATE);if(prefs.getBoolean("rating_prompt_shown",false))return;
+        prefs.edit().putBoolean("rating_prompt_shown",true).apply();
+        new AlertDialog.Builder(this).setTitle(tr("Enjoying Prompt Overlay?"))
+            .setMessage(tr("If Prompt Overlay has been useful, would you rate it on Google Play?"))
+            .setPositiveButton(tr("Rate us"),(d,w)->openPlayListing()).setNegativeButton(tr("Not now"),null).show();}
+
     private void toast(String s){if(Looper.myLooper()!=Looper.getMainLooper()){main.post(()->toast(s));return;}Toast.makeText(this,tr(s),Toast.LENGTH_LONG).show();}
     private final class Tracks extends View {
         private final Paint p=new Paint(Paint.ANTI_ALIAS_FLAG);

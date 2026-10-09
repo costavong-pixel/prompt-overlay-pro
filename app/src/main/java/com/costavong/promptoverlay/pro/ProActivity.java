@@ -58,21 +58,21 @@ public final class ProActivity extends Activity {
     private TextView text(String s,int size,boolean bold){TextView t=new TextView(this);t.setText(tr(s));t.setTextColor(0xfff3f5fb);t.setTextSize(size);if(bold)t.setTypeface(null,Typeface.BOLD);t.setPadding(0,dp(6),0,dp(6));return t;}
     private Button button(String label,Runnable action){Button b=new Button(this);b.setText(tr(label));b.setTextSize(14);b.setTextColor(0xfff6f8ff);b.setAllCaps(false);b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));b.setBackground(shape(INPUT,14));
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(50));lp.setMargins(dp(3),dp(4),dp(3),dp(4));b.setLayoutParams(lp);b.setOnClickListener(v->{if(!isBusy())action.run();else toast("Wait for the current job or cancel it first.");});return b;}
-    private void graphicsActionRow(){
-        LinearLayout r=row();
-        Button clips=button("Clips",this::clipActions),captions=button("Captions",this::captionActions),graphics=button("Graphics",this::graphicActions);
-        LinearLayout.LayoutParams weighted=new LinearLayout.LayoutParams(0,dp(50),1);weighted.setMargins(dp(3),dp(4),dp(1),dp(4));r.addView(clips,weighted);
-        weighted=new LinearLayout.LayoutParams(0,dp(50),1);weighted.setMargins(dp(1),dp(4),dp(1),dp(4));r.addView(captions,weighted);
-        LinearLayout cell=row();LinearLayout.LayoutParams main=new LinearLayout.LayoutParams(0,dp(50),1);main.setMargins(dp(1),dp(4),dp(1),dp(4));cell.addView(graphics,main);
-        TextView info=text("i",16,true);info.setGravity(Gravity.CENTER);info.setTextColor(TEAL);info.setBackground(shape(INPUT,24));info.setContentDescription(tr("Graphics help"));
-        info.setOnClickListener(v->{if(!isBusy())graphicsInfo();else toast("Wait for the current job or cancel it first.");});
-        LinearLayout.LayoutParams infoLp=new LinearLayout.LayoutParams(dp(42),dp(50));infoLp.setMargins(dp(1),dp(4),dp(3),dp(4));cell.addView(info,infoLp);
-        LinearLayout.LayoutParams cellLp=new LinearLayout.LayoutParams(0,dp(50),1);r.addView(cell,cellLp);body.addView(r);
+    private View withInfo(Button action,String title,String message){
+        LinearLayout cell=row();
+        LinearLayout.LayoutParams actionLp=new LinearLayout.LayoutParams(0,dp(50),1);actionLp.setMargins(dp(3),dp(4),dp(1),dp(4));cell.addView(action,actionLp);
+        FrameLayout hit=new FrameLayout(this);hit.setFocusable(true);hit.setContentDescription(tr("Help information"));
+        TextView glyph=new TextView(this);glyph.setText("i");glyph.setTextSize(13);glyph.setTypeface(null,Typeface.BOLD);glyph.setTextColor(TEAL);glyph.setGravity(Gravity.CENTER);glyph.setBackground(shape(INPUT,14));
+        FrameLayout.LayoutParams glyphLp=new FrameLayout.LayoutParams(dp(28),dp(28),Gravity.CENTER);hit.addView(glyph,glyphLp);
+        hit.setOnClickListener(v->{if(!isBusy())showInfo(title,message);else toast("Wait for the current job or cancel it first.");});
+        LinearLayout.LayoutParams infoLp=new LinearLayout.LayoutParams(dp(42),dp(50));infoLp.setMargins(dp(1),dp(4),dp(3),dp(4));cell.addView(hit,infoLp);
+        return cell;
     }
-    private void graphicsInfo(){
-        new AlertDialog.Builder(this).setTitle(tr("Graphics help"))
-            .setMessage(tr("Add a title, logo, or image over your video. Choose Add title or Import logo or image. Use Edit graphics to change when it appears, its position, size, and opacity. Green-screen background lets you choose an image to replace the green background."))
-            .setPositiveButton(tr("Got it"),null).show();
+    private void pairControls(LinearLayout parent,View...controls){
+        LinearLayout r=row();for(View control:controls){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(58),1);lp.setMargins(dp(3),dp(0),dp(3),dp(0));r.addView(control,lp);}parent.addView(r);
+    }
+    private void showInfo(String title,String message){
+        new AlertDialog.Builder(this).setTitle(tr(title)).setMessage(tr(message)).setPositiveButton(tr("Got it"),null).show();
     }
     private void pair(LinearLayout parent,Button...buttons){LinearLayout r=row();for(Button b:buttons){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(50),1);lp.setMargins(dp(3),dp(4),dp(3),dp(4));r.addView(b,lp);}parent.addView(r);}
     private void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
@@ -100,16 +100,22 @@ public final class ProActivity extends Activity {
         body.addView(button("Privacy",()->ProPrivacy.show(this)));body.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));}
     private TextView projectName(String value){TextView name=text(value,18,true);name.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);name.setLayoutParams(new LinearLayout.LayoutParams(-1,-2));return name;}
     private void newProject(boolean pick){project=new ProProject();selected="";playheadUs=0;try{project.save(this);}catch(Exception e){error(e);}screen();if(pick)pick("video","video/*");}
-    private void editor(){pair(body,button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),button("Import video",()->pick("video","video/*")));
+    private void editor(){pairControls(body,
+            withInfo(button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show()),"Rename","Rename help"),
+            withInfo(button("Import video",()->pick("video","video/*")),"Import video","Import video help"));
         body.addView(projectName(project.name));FrameLayout display=new FrameLayout(this);display.setBackground(shape(0xff080b10,16));body.addView(display,new LinearLayout.LayoutParams(-1,dp(170)));
         preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);display.addView(preview,new FrameLayout.LayoutParams(-1,-1));
         clipPlayerView=new PlayerView(this);clipPlayerView.setUseController(false);clipPlayerView.setVisibility(View.GONE);display.addView(clipPlayerView,new FrameLayout.LayoutParams(-1,-1));
-        clipPlay=button("Play clip",this::toggleClipPlayback);clipPlay.setBackground(shape(ACCENT,14));body.addView(clipPlay);
+        clipPlay=button("Play clip",this::toggleClipPlayback);clipPlay.setBackground(shape(ACCENT,14));body.addView(withInfo(clipPlay,"Play clip","Play clip help"),new LinearLayout.LayoutParams(-1,dp(58)));
         clock=text("",14,false);clock.setGravity(Gravity.CENTER);body.addView(clock);seek=new SeekBar(this);seek.setMax(10000);seek.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int value,boolean user){if(user&&!isBusy()){playheadUs=Math.round(project.timeline().durationUs*value/10000.0);clock();}}public void onStartTrackingTouch(SeekBar s){syncClipClock();stopClipPlayback();}public void onStopTrackingTouch(SeekBar s){List<ProTimeline.Entry> active=project.timeline().at(playheadUs);if(!active.isEmpty()&&!active.get(active.size()-1).id.equals(selected)){selected=active.get(active.size()-1).id;screen();}else requestStill();}});body.addView(seek);
         tracks=new Tracks();body.addView(tracks,new LinearLayout.LayoutParams(-1,dp(128)));
         HorizontalScrollView clips=new HorizontalScrollView(this);LinearLayout clipRow=row();clips.addView(clipRow);for(int i=0;i<project.clips.size();i++){ProProject.Clip c=project.clips.get(i);Button b=button((i+1)+" · "+c.name,()->{selected=c.id;playheadUs=project.timeline().byId(c.id).startUs;screen();});b.setBackground(shape(c.id.equals(selected)?ACCENT:INPUT,12));clipRow.addView(b,new LinearLayout.LayoutParams(dp(160),dp(50)));}body.addView(clips);
-        graphicsActionRow();pair(body,button("Music",this::musicActions),button("Format",this::format));
-        gap(body,8);Button render=button("Edited preview",()->job("preview",720,"",""));Button export=button("Export",()->{pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Export")).setItems(new String[]{"720p · MP4","1080p · MP4"},(d,n)->job("export",n==0?720:1080,"","")).show();});export.setBackground(shape(ACCENT,14));pair(body,render,export);
+        pairControls(body,
+            withInfo(button("Clips",this::clipActions),"Clips","Clips help"),
+            withInfo(button("Captions",this::captionActions),"Captions","Captions help"),
+            withInfo(button("Graphics",this::graphicActions),"Graphics help","Add a title, logo, or image over your video. Choose Add title or Import logo or image. Use Edit graphics to change when it appears, its position, size, and opacity. Green-screen background lets you choose an image to replace the green background."));
+        pairControls(body,withInfo(button("Music",this::musicActions),"Music","Music help"),withInfo(button("Format",this::format),"Format","Format help"));
+        gap(body,8);Button render=button("Edited preview",()->job("preview",720,"",""));Button export=button("Export",()->{pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Export")).setItems(new String[]{"720p · MP4","1080p · MP4"},(d,n)->job("export",n==0?720:1080,"","")).show();});export.setBackground(shape(ACCENT,14));pairControls(body,withInfo(render,"Edited preview","Preview help"),withInfo(export,"Export","Export help"));
         body.addView(text("Play clip starts immediately. Edited preview includes captions, graphics and music.",13,false));body.addView(text("Changes saved on this phone",13,false));clock();requestStill();}
     private void toggleClipPlayback(){ProProject.Clip c=selected();if(c==null)return;
         if(clipPlayer!=null){if(clipPlayer.getPlayWhenReady()&&clipPlayer.getPlaybackState()!=Player.STATE_ENDED)pauseClipPlayback();else{if(clipPlayer.getPlaybackState()==Player.STATE_ENDED)clipPlayer.seekTo(0);clipPlayer.play();updateClipPlayback();}return;}

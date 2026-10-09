@@ -103,6 +103,7 @@ public final class ProActivity extends Activity {
     private void editor(){pairControls(body,
             button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),
             button("Import video",()->pick("video","video/*")));
+        body.addView(projectName(project.name));FrameLayout display=new FrameLayout(this);display.setBackground(shape(0xff080b10,16));body.addView(display,new LinearLayout.LayoutParams(-1,dp(170)));
         preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);display.addView(preview,new FrameLayout.LayoutParams(-1,-1));
         clipPlayerView=new PlayerView(this);clipPlayerView.setUseController(false);clipPlayerView.setVisibility(View.GONE);display.addView(clipPlayerView,new FrameLayout.LayoutParams(-1,-1));
         clipPlay=button("Play clip",this::toggleClipPlayback);clipPlay.setBackground(shape(ACCENT,14));body.addView(clipPlay,new LinearLayout.LayoutParams(-1,dp(58)));

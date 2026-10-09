@@ -1,6 +1,10 @@
 # Alpha validation
 
-Prompt Overlay Pro alpha 4 — build validation, October 8, 2026
+Prompt Overlay Pro alpha 6 source update, October 9, 2026
+
+No APK was built and no tests were run for alpha 6. Phone testing remains required for the revised home layout, project-name wrapping in all four languages, successful-save rating prompt, and Play Store link. Alpha 5's tutorial was removed by request.
+
+Historical: Prompt Overlay Pro alpha 4 — build validation, October 8, 2026
 
 Version: 2.0.0-pro-alpha4 (code 40)
 Application ID: com.costavong.promptoverlay.protest

@@ -1,5 +1,10 @@
 # Alpha validation
 
+Prompt Overlay Pro alpha 7 source update, October 9, 2026
+
+No APK was built and no tests were run for alpha 7. Phone testing remains required for the new Graphics information button, dialog readability, and all four translations. Alpha 6 home layout, project-name wrapping, rating prompt, and Play Store link still need phone testing. Alpha 5's tutorial was removed by request.
+
+
 Prompt Overlay Pro alpha 6 source update, October 9, 2026
 
 No APK was built and no tests were run for alpha 6. Phone testing remains required for the revised home layout, project-name wrapping in all four languages, successful-save rating prompt, and Play Store link. Alpha 5's tutorial was removed by request.

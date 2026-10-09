@@ -1,9 +1,9 @@
 # Prompt Overlay Pro
 
 Android teleprompter and local video-editor prototype. Current version:
-**2.0.0-pro-alpha6** (version code 42).
+**2.0.0-pro-alpha7** (version code 43).
 
-Alpha 6 removes the unwanted onboarding tutorial, makes the home screen a direct choice between teleprompter and video editing, constrains long project names, and adds a translated one-time rating prompt plus a permanent Rate app button. These UI changes still need phone testing. This is an alpha. Alpha 3 added immediate playback of the selected source clip inside the
+Alpha 7 adds a small translated information button beside Graphics to explain titles, logos, overlays, and green-screen background selection. It needs phone testing. Alpha 6 removed the unwanted onboarding tutorial, made the home screen a direct choice between teleprompter and video editing, constrained long project names, and added a translated one-time rating prompt plus a permanent Rate app button. This is an alpha. Alpha 3 added immediate playback of the selected source clip inside the
 editor, without rendering, and the user confirmed the new Play clip button
 works on the phone. Alpha 2 phone testing
 confirmed short 720p and approximately 30-second 1080p exports, trim/edit
@@ -41,7 +41,7 @@ Install JDK 17 and Android SDK platform 36 / build-tools 36.0.0. Set
 ```
 
 The default test APK targets ARM64 and installs as **Prompt Overlay Pro Test**
-(`com.costavong.promptoverlay.proalpha6`) beside the published Basic app. It uses
+(`com.costavong.promptoverlay.proalpha7`) beside the published Basic app. It uses
 the local Android debug signing identity; no keystore is included here.
 
 For an x86_64 emulator:

@@ -115,6 +115,7 @@ final class ProStrings {
         {"If Prompt Overlay has been useful, would you rate it on Google Play?","Si Prompt Overlay te ha sido útil, ¿la valorarías en Google Play?","Si Prompt Overlay vous a été utile, pourriez-vous la noter sur Google Play ?","إذا كان Prompt Overlay مفيدًا لك، هل تقيّمه على Google Play؟"},
         {"Rate us","Valóranos","Nous noter","قيّمنا"},
         {"Not now","Ahora no","Pas maintenant","ليس الآن"},
+        {"Tap Import video to begin","Toca Importar vídeo para empezar","Touchez Importer une vidéo pour commencer","اضغط على استيراد فيديو للبدء"},
     };
     static String t(Context context,String source){String code=AppLanguage.current(context);int col="es".equals(code)?1:"fr".equals(code)?2:"ar".equals(code)?3:0;
         for(String[] row:WORDS)if(row[0].equals(source))return row[col];return AppLanguage.t(context,source);}

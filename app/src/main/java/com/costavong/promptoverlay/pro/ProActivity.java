@@ -61,9 +61,6 @@ public final class ProActivity extends Activity {
     private void pairControls(LinearLayout parent,View...controls){
         LinearLayout r=row();for(View control:controls){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(48),1);lp.setMargins(dp(3),dp(0),dp(3),dp(0));r.addView(control,lp);}parent.addView(r);
     }
-    private void showInfo(String title,String message){
-        new AlertDialog.Builder(this).setTitle(tr(title)).setMessage(tr(message)).setPositiveButton(tr("Got it"),null).show();
-    }
     private void pair(LinearLayout parent,Button...buttons){LinearLayout r=row();for(Button b:buttons){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(44),1);lp.setMargins(dp(3),dp(3),dp(3),dp(3));r.addView(b,lp);}parent.addView(r);}
     private void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
     private void screen(){stopClipPlayback();stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
@@ -81,7 +78,7 @@ public final class ProActivity extends Activity {
         body.addView(button("Edit a video",()->newProject(false)));
         gap(body,10);body.addView(text("Your projects",19,true));
         List<ProProject> projects=ProProject.all(this);
-        if(projects.isEmpty())body.addView(text("No projects yet. Tap Edit a video to choose a recording.",16,false));
+        if(projects.isEmpty())body.addView(text("No projects yet. Tap Edit a video to start, then tap Import video.",16,false));
         for(ProProject p:projects){LinearLayout card=column();card.setPadding(dp(14),dp(10),dp(14),dp(12));card.setBackground(shape(CARD,18));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,dp(10),0,0);body.addView(card,lp);
             card.addView(projectName(p.name));card.addView(text(p.clips.size()+" · "+seconds(p.timeline().durationUs)+"s · "+p.format,14,false));
             pair(card,button("Open",()->{project=p;selected=p.clips.isEmpty()?"":p.clips.get(0).id;playheadUs=0;screen();}),button("Delete",()->new AlertDialog.Builder(this).setMessage(tr("Delete this project and its imported files?"))

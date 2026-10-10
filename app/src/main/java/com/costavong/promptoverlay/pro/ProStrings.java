@@ -116,6 +116,7 @@ final class ProStrings {
         {"Rate us","Valóranos","Nous noter","قيّمنا"},
         {"Not now","Ahora no","Pas maintenant","ليس الآن"},
         {"Tap Import video to begin","Toca Importar vídeo para empezar","Touchez Importer une vidéo pour commencer","اضغط على استيراد فيديو للبدء"},
+        {"No projects yet. Tap Edit a video to start, then tap Import video.","Aún no hay proyectos. Toca Editar un vídeo para empezar y luego Importar vídeo.","Aucun projet pour le moment. Touchez Modifier une vidéo, puis Importer une vidéo.","لا توجد مشاريع بعد. اضغط على تعديل فيديو للبدء، ثم استيراد فيديو."},
     };
     static String t(Context context,String source){String code=AppLanguage.current(context);int col="es".equals(code)?1:"fr".equals(code)?2:"ar".equals(code)?3:0;
         for(String[] row:WORDS)if(row[0].equals(source))return row[col];return AppLanguage.t(context,source);}

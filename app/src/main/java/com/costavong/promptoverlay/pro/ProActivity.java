@@ -59,14 +59,16 @@ public final class ProActivity extends Activity {
     private Button button(String label,Runnable action){Button b=new Button(this);b.setText(tr(label));b.setTextSize(13);b.setTextColor(0xfff6f8ff);b.setAllCaps(false);b.setMinHeight(dp(44));b.setMinimumHeight(dp(44));b.setBackground(shape(INPUT,14));
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(44));lp.setMargins(dp(3),dp(3),dp(3),dp(3));b.setLayoutParams(lp);b.setOnClickListener(v->{if(!isBusy())action.run();else toast("Wait for the current job or cancel it first.");});return b;}
     private void pairControls(LinearLayout parent,View...controls){
-        LinearLayout r=row();for(View control:controls){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(42),1);lp.setMargins(dp(6),dp(0),dp(6),dp(0));r.addView(control,lp);}parent.addView(r,new LinearLayout.LayoutParams(-1,dp(54)));
+        LinearLayout r=row();for(View control:controls){if(control instanceof Button){Button b=(Button)control;b.setMinHeight(dp(38));b.setMinimumHeight(dp(38));b.setTextSize(12);b.setPadding(0,0,0,0);}
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(38),1);lp.setMargins(dp(8),dp(0),dp(8),dp(0));r.addView(control,lp);}parent.addView(r,new LinearLayout.LayoutParams(-1,dp(58)));
     }
     private void pair(LinearLayout parent,Button...buttons){LinearLayout r=row();for(Button b:buttons){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(44),1);lp.setMargins(dp(3),dp(3),dp(3),dp(3));r.addView(b,lp);}parent.addView(r);}
     private void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
     private void screen(){stopClipPlayback();stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
         if(Build.VERSION.SDK_INT>=35){scroll.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());scroll.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});scroll.requestApplyInsets();}
         body.addView(text("Prompt Overlay",project==null?28:22,true));if(project==null)body.addView(text("Pro test · purchases are disabled",13,false));
-        if(project!=null)body.addView(button("Back",()->{project=null;screen();}));
+        if(project!=null){Button back=button("Back",()->{project=null;screen();});back.setMinHeight(dp(40));back.setMinimumHeight(dp(40));back.setPadding(0,0,0,0);
+            LinearLayout.LayoutParams backLp=new LinearLayout.LayoutParams(-1,dp(40));backLp.setMargins(dp(3),dp(3),dp(3),0);body.addView(back,backLp);}
         status=text("",14,false);status.setTextColor(TEAL);status.setVisibility(View.GONE);body.addView(status);progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);body.addView(progress);progress.setVisibility(View.GONE);
         if(project==null)library();else editor();jobStatusOnly();}
     private void language(){pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Language")).setSingleChoiceItems(AppLanguage.languageLabels(),AppLanguage.indexOf(this),(d,n)->{AppLanguage.set(this,AppLanguage.codeAt(n));d.dismiss();screen();}).setNegativeButton(tr("Cancel"),null).show();}

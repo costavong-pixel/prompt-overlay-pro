@@ -6,7 +6,7 @@ on:
       - alpha9-compact-editor
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-test-apk:
@@ -62,3 +62,15 @@ jobs:
           path: deliverables/
           if-no-files-found: error
           retention-days: 7
+      - name: Publish the test APK as a GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v2.0.0-pro-alpha9-spacing-polish \
+            deliverables/PromptOverlay-Pro-v2.0.0-alpha9.apk \
+            deliverables/BUILD-VALIDATION.txt \
+            deliverables/SHA256SUMS.txt \
+            --target "$GITHUB_SHA" \
+            --title "Prompt Overlay Pro alpha 9 spacing polish (test APK)" \
+            --notes "Test-only APK signed with the Android debug key. Not for Google Play production distribution." \
+            --prerelease

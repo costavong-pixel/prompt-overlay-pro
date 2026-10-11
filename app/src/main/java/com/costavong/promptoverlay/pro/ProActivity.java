@@ -35,6 +35,7 @@ public final class ProActivity extends Activity {
     private LinearLayout body;private ImageView preview;private TextView clock,status;private SeekBar seek;private ProgressBar progress;private Tracks tracks;
     private ProProject project;private String selected="",pending="",exportPath="",handled="";private long playheadUs=0;private int stillGeneration=0;
     private boolean localBusy=false,jobStarting=false;private Bitmap still;private Dialog playback;private ExoPlayer player;
+    private AlertDialog ratingDialog;
     private PlayerView clipPlayerView;private Button clipPlay;private ExoPlayer clipPlayer;private ProClipPlayback clipPlayback;
     private final Runnable clipTick=()->updateClipPlayback();
     private final BroadcastReceiver receiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){jobUpdate();}};
@@ -45,9 +46,10 @@ public final class ProActivity extends Activity {
         else load(getIntent().getStringExtra("project"));screen();consumeShare(getIntent());
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},90);
     }
-    @Override protected void onStart(){super.onStart();androidx.core.content.ContextCompat.registerReceiver(this,receiver,new IntentFilter(ProExportService.UPDATE),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);jobUpdate();requestStill();}
+    @Override protected void onStart(){super.onStart();trackRatingSession();androidx.core.content.ContextCompat.registerReceiver(this,receiver,new IntentFilter(ProExportService.UPDATE),androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED);jobUpdate();requestStill();
+        if(project==null)main.postDelayed(this::maybePromptForRating,1200);}
     @Override protected void onStop(){syncClipClock();stopClipPlayback();if(player!=null)player.pause();unregisterReceiver(receiver);super.onStop();}
-    @Override protected void onDestroy(){stopClipPlayback();stillGeneration++;worker.shutdownNow();if(player!=null)player.release();if(still!=null)still.recycle();super.onDestroy();}
+    @Override protected void onDestroy(){if(ratingDialog!=null){ratingDialog.dismiss();ratingDialog=null;}stopClipPlayback();stillGeneration++;worker.shutdownNow();if(player!=null)player.release();if(still!=null)still.recycle();super.onDestroy();}
     @Override protected void onSaveInstanceState(Bundle b){super.onSaveInstanceState(b);b.putString("project",project==null?"":project.id);b.putString("selected",selected);b.putString("pending",pending);b.putLong("playhead",playheadUs);b.putString("export",exportPath);b.putString("handled",handled);}
     @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(intent.hasExtra("project")){load(intent.getStringExtra("project"));screen();}consumeShare(intent);}
     @Override public void onBackPressed(){if(project!=null&&!isBusy()){project=null;selected="";screen();}else if(!isBusy())super.onBackPressed();else toast("Wait for the current job or cancel it first.");}
@@ -98,6 +100,19 @@ public final class ProActivity extends Activity {
         Button teleprompter=button("Open teleprompter",()->startActivity(new Intent(this,MainActivity.class).putExtra("open_basic",true)));
         teleprompter.setBackground(shape(ACCENT,14));body.addView(teleprompter);
         body.addView(button("Edit a video",()->newProject(false)));
+        if(!ratingPrefs().getBoolean("rating_already_reviewed",false)){
+            gap(body,12);
+            LinearLayout reviewCard=column();reviewCard.setPadding(dp(14),dp(10),dp(14),dp(12));
+            reviewCard.setBackground(shape(CARD,16));body.addView(reviewCard,new LinearLayout.LayoutParams(-1,-2));
+            reviewCard.addView(text("Help us improve Prompt Overlay",16,true));
+            reviewCard.addView(text("Your honest Google Play review helps motivate us to keep improving the software.",13,false));
+            Button rate=button("Rate on Google Play",this::openPlayListing);
+            rate.setBackground(shape(ACCENT,14));reviewCard.addView(rate,new LinearLayout.LayoutParams(-1,dp(48)));
+            TextView reviewed=text("I've already reviewed",12,false);
+            reviewed.setTextColor(TEAL);reviewed.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
+            reviewed.setMinHeight(dp(40));reviewed.setOnClickListener(v->markRatingReviewed());
+            reviewCard.addView(reviewed,new LinearLayout.LayoutParams(-1,dp(40)));
+        }
         gap(body,10);body.addView(text("Your projects",19,true));
         List<ProProject> projects=ProProject.all(this);
         if(projects.isEmpty())body.addView(text("No projects yet. Tap Edit a video to start, then tap Import video.",16,false));
@@ -153,7 +168,7 @@ public final class ProActivity extends Activity {
     private void requestStill(){if(project==null||project.clips.isEmpty()||isBusy())return;int token=++stillGeneration;try{ProProject snapshot=ProProject.from(project.json());long time=playheadUs;
             worker.execute(()->{Bitmap b=null;try{if(token!=stillGeneration)return;int[] size=snapshot.outputSize(360);try(ProFrameRenderer r=new ProFrameRenderer(snapshot,size[0],size[1])){b=r.render(time).copy(Bitmap.Config.ARGB_8888,false);}Bitmap result=b;main.post(()->{if(token!=stillGeneration||isDestroyed()){result.recycle();return;}Bitmap old=still;still=result;preview.setImageBitmap(result);if(old!=null)old.recycle();});}catch(Exception e){if(b!=null)b.recycle();main.post(()->{if(token==stillGeneration)showStatus(e.getMessage());});}});
         }catch(Exception e){error(e);}}
-    private void changed(boolean rebuild){try{project.revision++;project.save(this);exportPath="";if(rebuild)screen();else{clock();requestStill();}}catch(Exception e){error(e);}}
+    private void changed(boolean rebuild){try{project.revision++;project.save(this);noteRatingEngagement();exportPath="";if(rebuild)screen();else{clock();requestStill();}}catch(Exception e){error(e);}}
     private ProProject.Clip selected(){ProProject.Clip c=project==null?null:project.clip(selected);if(c==null)toast("Select a clip first.");return c;}
     private void choices(String title,String[] options,java.util.function.IntConsumer action){ScrollView scroll=new ScrollView(this);LinearLayout list=column();list.setPadding(dp(16),dp(8),dp(16),dp(8));list.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(list);
         pauseClipPlayback();
@@ -250,7 +265,7 @@ public final class ProActivity extends Activity {
     private void pick(String kind,String type){pending=kind;Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType(type).addCategory(Intent.CATEGORY_OPENABLE);if("video".equals(kind))intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(intent,PICK);}
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null)return;
         if(request==PICK){ArrayList<Uri> uris=new ArrayList<>();if(data.getClipData()!=null)for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());else if(data.getData()!=null)uris.add(data.getData());importFiles(uris,pending);}
-        if(request==SAVE_VIDEO&&data.getData()!=null){Uri uri=data.getData();String path=exportPath;localBusy=true;showStatus(tr("Save video"));worker.execute(()->{try(InputStream in=new FileInputStream(path);OutputStream out=getContentResolver().openOutputStream(uri)){copy(in,out);main.post(()->{toast("Saved.");main.postDelayed(this::maybePromptForRating,1800);});}catch(Exception e){main.post(()->error(e));}finally{main.post(()->{localBusy=false;if(!isDestroyed())jobStatusOnly();});}});}}
+        if(request==SAVE_VIDEO&&data.getData()!=null){Uri uri=data.getData();String path=exportPath;localBusy=true;showStatus(tr("Save video"));worker.execute(()->{try(InputStream in=new FileInputStream(path);OutputStream out=getContentResolver().openOutputStream(uri)){copy(in,out);main.post(()->{toast("Saved.");noteRatingExportSaved();main.postDelayed(this::maybePromptForRating,1800);});}catch(Exception e){main.post(()->error(e));}finally{main.post(()->{localBusy=false;if(!isDestroyed())jobStatusOnly();});}});}}
     private void consumeShare(Intent intent){String action=intent.getAction();if(!Intent.ACTION_SEND.equals(action)&&!Intent.ACTION_SEND_MULTIPLE.equals(action))return;if(isBusy()){toast("Wait for the current job or cancel it first.");return;}
         ArrayList<Uri> uris=new ArrayList<>();if(Intent.ACTION_SEND.equals(action)){Uri u=intent.getParcelableExtra(Intent.EXTRA_STREAM);if(u!=null)uris.add(u);}else{ArrayList<Uri> list=intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);if(list!=null)uris.addAll(list);}intent.setAction(null);if(uris.isEmpty())return;newProject(false);importFiles(uris,"video");}
     private String displayName(Uri uri){try(android.database.Cursor c=getContentResolver().query(uri,new String[]{OpenableColumns.DISPLAY_NAME},null,null,null)){if(c!=null&&c.moveToFirst())return c.getString(0);}catch(Exception ignored){}return "Imported file";}
@@ -263,7 +278,7 @@ public final class ProActivity extends Activity {
                         if("green".equals(kind))target.greenBackground=destination.getPath();else{File last=new File(getFilesDir(),"pro/last-logo");try(InputStream in=new FileInputStream(destination);OutputStream out=new FileOutputStream(last)){copy(in,out);}logo=newLayer("image");logo.path=destination.getPath();}}
                 }catch(Exception e){destination.delete();throw e;}}
             if("video".equals(kind)&&target.timeline().byId(selected)!=null)playheadUs=target.timeline().byId(selected).startUs;target.revision++;target.save(this);
-        }catch(Exception e){problem=e.getMessage();try{target.save(this);}catch(Exception ignored){}}String failure=problem;ProProject.Layer layer=logo;main.post(()->{localBusy=false;if(isDestroyed())return;screen();if(failure!=null)toast(failure);if(layer!=null)editLayer(layer,true);});});}
+        }catch(Exception e){problem=e.getMessage();try{target.save(this);}catch(Exception ignored){}}String failure=problem;ProProject.Layer layer=logo;main.post(()->{localBusy=false;if(isDestroyed())return;if(failure==null)noteRatingEngagement();screen();if(failure!=null)toast(failure);if(layer!=null)editLayer(layer,true);});});}
     private static void copy(InputStream in,OutputStream out)throws IOException{if(in==null||out==null)throw new IOException("Cannot open this file.");byte[] b=new byte[65536];int n;while((n=in.read(b))>=0){if(Thread.currentThread().isInterrupted())throw new IOException("Cancelled.");out.write(b,0,n);}}
     private void job(String kind,int resolution,String clip,String language){if(project.clips.isEmpty()){toast("Import a video first.");return;}syncClipClock();stopClipPlayback();try{project.save(this);handled="";
         File jobs=new File(getFilesDir(),"pro/jobs");jobs.mkdirs();File snapshot=new File(jobs,UUID.randomUUID()+".json");try(OutputStream out=new FileOutputStream(snapshot)){out.write(project.json().toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));}
@@ -278,12 +293,72 @@ public final class ProActivity extends Activity {
     private void outputOptions(){choices("Finished video",new String[]{"Preview","Save video","Share"},n->{if(n==0)play(exportPath);if(n==1)startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).setType("video/mp4").addCategory(Intent.CATEGORY_OPENABLE).putExtra(Intent.EXTRA_TITLE,project.name.replaceAll("[\\\\/:*?\"<>|]","_")+".mp4"),SAVE_VIDEO);
             if(n==2){Uri u=FileProvider.getUriForFile(this,getPackageName()+".profiles",new File(exportPath));Intent share=new Intent(Intent.ACTION_SEND).setType("video/mp4").putExtra(Intent.EXTRA_STREAM,u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);share.setClipData(ClipData.newRawUri("Video",u));startActivity(Intent.createChooser(share,tr("Share")));}});}
     private void error(Throwable e){toast(e.getMessage()==null?e.getClass().getSimpleName():e.getMessage());}
-    private void openPlayListing(){Uri listing=Uri.parse("market://details?id=com.costavong.promptoverlay");try{startActivity(new Intent(Intent.ACTION_VIEW,listing));}catch(ActivityNotFoundException e){startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse("https://play.google.com/store/apps/details?id=com.costavong.promptoverlay")));}}
-    private void maybePromptForRating(){if(isFinishing()||isDestroyed())return;android.content.SharedPreferences prefs=getPreferences(MODE_PRIVATE);if(prefs.getBoolean("rating_prompt_shown",false))return;
-        prefs.edit().putBoolean("rating_prompt_shown",true).apply();
-        new AlertDialog.Builder(this).setTitle(tr("Enjoying Prompt Overlay?"))
-            .setMessage(tr("If Prompt Overlay has been useful, would you rate it on Google Play?"))
-            .setPositiveButton(tr("Rate us"),(d,w)->openPlayListing()).setNegativeButton(tr("Not now"),null).show();}
+    private android.content.SharedPreferences ratingPrefs(){return getPreferences(MODE_PRIVATE);}
+    private void trackRatingSession(){
+        android.content.SharedPreferences prefs=ratingPrefs();
+        android.content.SharedPreferences.Editor edit=prefs.edit();
+        long now=System.currentTimeMillis(),last=prefs.getLong("rating_last_session_ms",0);
+        if(prefs.getLong("rating_first_seen_ms",0)<=0)edit.putLong("rating_first_seen_ms",now);
+        int sessions=prefs.getInt("rating_sessions",0);
+        if(last<=0||now-last>=4L*60*60*1000){
+            sessions++;edit.putInt("rating_sessions",sessions).putLong("rating_last_session_ms",now);
+        }
+        // An older release asked only once; don't re-prompt immediately on upgrade.
+        if(prefs.getBoolean("rating_prompt_shown",false)){
+            if(prefs.getLong("rating_last_prompt_ms",0)==0)edit.putLong("rating_last_prompt_ms",now)
+                .putInt("rating_sessions_at_prompt",sessions);
+            edit.remove("rating_prompt_shown");
+        }
+        if(project!=null&&!project.clips.isEmpty())edit.putBoolean("rating_engaged",true);
+        edit.apply();
+    }
+    private void noteRatingEngagement(){
+        if(project!=null&&!project.clips.isEmpty())ratingPrefs().edit().putBoolean("rating_engaged",true).apply();
+    }
+    private void noteRatingExportSaved(){
+        android.content.SharedPreferences prefs=ratingPrefs();
+        prefs.edit().putBoolean("rating_engaged",true)
+            .putInt("rating_exports",prefs.getInt("rating_exports",0)+1).apply();
+    }
+    private void markRatingReviewed(){
+        ratingPrefs().edit().putBoolean("rating_already_reviewed",true).apply();
+        toast("Thanks! Review reminders are off.");
+        if(project==null)screen();
+    }
+    private void openPlayListing(){
+        // The separate sideloadable Pro test package is not the Play listing.
+        // Direct users to the already-published Prompt Overlay app.
+        ratingPrefs().edit().putLong("rating_store_visit_ms",System.currentTimeMillis()).apply();
+        Uri listing=Uri.parse("market://details?id=com.costavong.promptoverlay");
+        try{startActivity(new Intent(Intent.ACTION_VIEW,listing));}
+        catch(ActivityNotFoundException e){startActivity(new Intent(Intent.ACTION_VIEW,
+            Uri.parse("https://play.google.com/store/apps/details?id=com.costavong.promptoverlay")));}
+    }
+    private void maybePromptForRating(){
+        if(isFinishing()||isDestroyed()||isBusy()||!hasWindowFocus()
+                ||(ratingDialog!=null&&ratingDialog.isShowing())
+                ||(playback!=null&&playback.isShowing()))return;
+        android.content.SharedPreferences prefs=ratingPrefs();
+        long now=System.currentTimeMillis();
+        if(!ProRatingSchedule.eligible(now,prefs.getLong("rating_first_seen_ms",0),
+                prefs.getInt("rating_sessions",0),prefs.getInt("rating_exports",0),
+                prefs.getBoolean("rating_engaged",false),
+                prefs.getBoolean("rating_already_reviewed",false),
+                prefs.getLong("rating_last_prompt_ms",0),
+                prefs.getInt("rating_sessions_at_prompt",0),
+                prefs.getLong("rating_store_visit_ms",0)))return;
+        prefs.edit().putLong("rating_last_prompt_ms",now)
+            .putInt("rating_sessions_at_prompt",prefs.getInt("rating_sessions",0)).apply();
+        ratingDialog=new AlertDialog.Builder(this)
+            .setTitle(tr("Help us improve Prompt Overlay"))
+            .setMessage(tr("Your honest Google Play review helps motivate us to keep improving the software."))
+            .setPositiveButton(tr("Rate on Google Play"),(d,w)->openPlayListing())
+            .setNegativeButton(tr("Remind me later"),(d,w)->{})
+            .setNeutralButton(tr("I've already reviewed"),(d,w)->markRatingReviewed())
+            .create();
+        ratingDialog.setOnDismissListener(d->ratingDialog=null);
+        ratingDialog.show();
+    }
 
     private void toast(String s){if(Looper.myLooper()!=Looper.getMainLooper()){main.post(()->toast(s));return;}Toast.makeText(this,tr(s),Toast.LENGTH_LONG).show();}
     private final class Tracks extends View {

@@ -1,0 +1,76 @@
+name: Prompt Overlay Pro alpha 12 review reminders APK
+
+on:
+  push:
+    branches:
+      - alpha12-rate-review
+
+permissions:
+  contents: write
+
+jobs:
+  build-test-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out alpha 12 source
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Gradle 8.14.3
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.14.3
+      - name: Install Android API 36 and build tools
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "/usr/local/lib/android/sdk/platform-tools" >> "$GITHUB_PATH"
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Run unit tests, lint, and build debug APK
+        run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" --max-workers=2 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+      - name: Verify and label the test APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          TOOLS="$ANDROID_HOME/build-tools/36.0.0"
+          "$TOOLS/apksigner" verify --verbose "$APK"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" | grep -E "package: name='com.costavong.promptoverlay.proalpha12' versionCode='48' versionName='2.0.0-pro-alpha12'"
+          mkdir -p deliverables
+          cp "$APK" deliverables/PromptOverlay-Pro-v2.0.0-alpha12-rating.apk
+          sha256sum deliverables/PromptOverlay-Pro-v2.0.0-alpha12-rating.apk | tee deliverables/SHA256SUMS.txt
+          {
+            echo "Version: 2.0.0-pro-alpha12 (48)"
+            echo "Package: com.costavong.promptoverlay.proalpha12"
+            echo "Signing: Android debug key; test only"
+            echo "Unit tests: passed"
+            echo "Lint: passed with existing warnings, if any"
+            echo "APK signature and 16 KB ZIP alignment: verified"
+            cat deliverables/SHA256SUMS.txt
+          } | tee deliverables/BUILD-VALIDATION.txt
+          cat deliverables/BUILD-VALIDATION.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the private test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PromptOverlay-Pro-alpha12-rating-test
+          path: deliverables/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Publish the test APK as a GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v2.0.0-pro-alpha12-rating \
+            deliverables/PromptOverlay-Pro-v2.0.0-alpha12-rating.apk \
+            deliverables/BUILD-VALIDATION.txt \
+            deliverables/SHA256SUMS.txt \
+            --target "$GITHUB_SHA" \
+            --title "Prompt Overlay Pro alpha 12 review reminders (test APK)" \
+            --notes "Test-only side-by-side APK signed with the Android debug key. Adds a prominent Google Play review CTA and locally scheduled, opt-out-able review reminders. Not for Google Play production distribution." \
+            --prerelease

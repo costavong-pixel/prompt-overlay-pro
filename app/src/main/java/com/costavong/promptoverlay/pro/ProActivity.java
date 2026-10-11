@@ -212,7 +212,41 @@ public final class ProActivity extends Activity {
         EditText in=number(f,"Start (seconds)",m.inUs/1e6),out=number(f,"End (seconds)",m.outUs/1e6),start=number(f,"Timeline start (seconds)",m.startUs/1e6),volume=number(f,"Volume (%)",m.volume*100),fadeIn=number(f,"Fade in (seconds)",m.fadeInUs/1e6),fadeOut=number(f,"Fade out (seconds)",m.fadeOutUs/1e6);
         form("Edit music",f,()->{long a=Math.round(value(in,0,sourceDuration/1e6)*1e6),b=Math.round(value(out,0,sourceDuration/1e6)*1e6);if(b<=a)throw new IOException("End must come after start.");long st=Math.round(value(start,0,project.timeline().durationUs/1e6)*1e6),fi=Math.round(value(fadeIn,0,(b-a)/1e6)*1e6),fo=Math.round(value(fadeOut,0,(b-a)/1e6)*1e6);double v=value(volume,0,200)/100;m.inUs=a;m.outUs=b;m.startUs=st;m.fadeInUs=fi;m.fadeOutUs=fo;m.volume=v;});}
     private long duration(String path){MediaMetadataRetriever m=new MediaMetadataRetriever();try{m.setDataSource(path);return Long.parseLong(m.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION))*1000;}catch(Exception e){error(e);return 0;}finally{try{m.release();}catch(Exception ignored){}}}
-    private void format(){String[] formats={"Original","9:16","16:9","1:1","4:5"};choices("Format",formats,n->{project.format=formats[n];changed(true);});}
+    /** Show platform suggestions next to each ratio; the stored value remains only the ratio. */
+    private void format(){
+        String[] formats={"Original","9:16","16:9","1:1","4:5"};
+        String[] hints={
+            "Keep source ratio",
+            "TikTok · IG/FB Reels · YouTube Shorts",
+            "YouTube videos · LinkedIn landscape",
+            "IG · FB · LinkedIn feed (square)",
+            "IG · FB · LinkedIn feed (portrait)"
+        };
+        pauseClipPlayback();
+        ScrollView scroll=new ScrollView(this);
+        LinearLayout list=column();list.setPadding(dp(16),dp(8),dp(16),dp(8));
+        list.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(list);
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tr("Format")).setView(scroll)
+            .setNegativeButton(tr("Cancel"),null).create();
+        for(int n=0;n<formats.length;n++){
+            final int index=n;
+            LinearLayout option=row();option.setBackground(shape(INPUT,14));
+            option.setPadding(dp(12),dp(6),dp(12),dp(6));
+            option.setMinimumHeight(dp(58));option.setClickable(true);option.setFocusable(true);
+            option.setContentDescription(tr(formats[n])+", "+tr(hints[n]));
+            TextView ratio=text(formats[n],16,true);ratio.setPadding(0,0,0,0);
+            ratio.setTextDirection(View.TEXT_DIRECTION_LTR);ratio.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+            option.addView(ratio,new LinearLayout.LayoutParams(dp(78),-2));
+            TextView hint=text(hints[n],12,false);hint.setTextColor(0xffcad2e3);
+            hint.setPadding(0,0,0,0);hint.setMaxLines(3);
+            hint.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+            option.addView(hint,new LinearLayout.LayoutParams(0,-2,1));
+            option.setOnClickListener(v->{dialog.dismiss();project.format=formats[index];changed(true);});
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);
+            lp.setMargins(0,dp(5),0,dp(5));list.addView(option,lp);
+        }
+        dialog.show();dialog.getWindow().setBackgroundDrawable(shape(CARD,20));
+    }
     private void pick(String kind,String type){pending=kind;Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT).setType(type).addCategory(Intent.CATEGORY_OPENABLE);if("video".equals(kind))intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true);startActivityForResult(intent,PICK);}
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(result!=RESULT_OK||data==null)return;
         if(request==PICK){ArrayList<Uri> uris=new ArrayList<>();if(data.getClipData()!=null)for(int i=0;i<data.getClipData().getItemCount();i++)uris.add(data.getClipData().getItemAt(i).getUri());else if(data.getData()!=null)uris.add(data.getData());importFiles(uris,pending);}

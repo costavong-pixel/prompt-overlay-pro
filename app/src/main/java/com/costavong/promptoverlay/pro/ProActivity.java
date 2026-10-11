@@ -5,6 +5,7 @@ import android.app.*;
 import android.content.*;
 import android.graphics.*;
 import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.InsetDrawable;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.*;
@@ -58,17 +59,36 @@ public final class ProActivity extends Activity {
     private TextView text(String s,int size,boolean bold){TextView t=new TextView(this);t.setText(tr(s));t.setTextColor(0xfff3f5fb);t.setTextSize(size);if(bold)t.setTypeface(null,Typeface.BOLD);t.setPadding(0,dp(6),0,dp(6));return t;}
     private Button button(String label,Runnable action){Button b=new Button(this);b.setText(tr(label));b.setTextSize(13);b.setTextColor(0xfff6f8ff);b.setAllCaps(false);b.setMinHeight(dp(44));b.setMinimumHeight(dp(44));b.setBackground(shape(INPUT,14));
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,dp(44));lp.setMargins(dp(3),dp(3),dp(3),dp(3));b.setLayoutParams(lp);b.setOnClickListener(v->{if(!isBusy())action.run();else toast("Wait for the current job or cancel it first.");});return b;}
-    private void pairControls(LinearLayout parent,View...controls){
-        LinearLayout r=row();for(View control:controls){if(control instanceof Button){Button b=(Button)control;b.setMinHeight(dp(38));b.setMinimumHeight(dp(38));b.setTextSize(12);b.setPadding(0,0,0,0);}
-            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(38),1);lp.setMargins(dp(8),dp(0),dp(8),dp(0));r.addView(control,lp);}parent.addView(r,new LinearLayout.LayoutParams(-1,dp(58)));
+    /** Keep a 48dp tap target while drawing a thinner button inside it. */
+    private void compactControls(LinearLayout parent,int verticalInset,int sideMargin,int textSize,View...controls){
+        LinearLayout r=row();
+        for(View control:controls){
+            if(control instanceof Button){
+                Button b=(Button)control;
+                b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));
+                b.setMinWidth(0);b.setMinimumWidth(0);
+                b.setTextSize(textSize);b.setPadding(0,0,0,0);
+                // Inset only the visible shape, not the clickable area.
+                b.setBackground(new InsetDrawable(b.getBackground(),0,dp(verticalInset),0,dp(verticalInset)));
+            }
+            LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(48),1);
+            lp.setMargins(dp(sideMargin),0,dp(sideMargin),0);
+            r.addView(control,lp);
+        }
+        parent.addView(r,new LinearLayout.LayoutParams(-1,dp(48)));
     }
+    private void pairControls(LinearLayout parent,View...controls){compactControls(parent,9,6,12,controls);}
+    private void headerControls(LinearLayout parent,View...controls){compactControls(parent,6,3,13,controls);}
     private void pair(LinearLayout parent,Button...buttons){LinearLayout r=row();for(Button b:buttons){LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,dp(44),1);lp.setMargins(dp(3),dp(3),dp(3),dp(3));r.addView(b,lp);}parent.addView(r);}
     private void gap(LinearLayout l,int h){View v=new View(this);l.addView(v,new LinearLayout.LayoutParams(1,dp(h)));}
     private void screen(){stopClipPlayback();stillGeneration++;ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);body=column();body.setPadding(dp(18),dp(12),dp(18),dp(32));body.setLayoutDirection(AppLanguage.layoutDirection(this));scroll.addView(body);setContentView(scroll);
         if(Build.VERSION.SDK_INT>=35){scroll.setOnApplyWindowInsetsListener((v,insets)->{android.graphics.Insets bars=insets.getInsets(WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());scroll.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});scroll.requestApplyInsets();}
         body.addView(text("Prompt Overlay",project==null?28:22,true));if(project==null)body.addView(text("Pro test · purchases are disabled",13,false));
-        if(project!=null){Button back=button("Back",()->{project=null;screen();});back.setMinHeight(dp(40));back.setMinimumHeight(dp(40));back.setPadding(0,0,0,0);
-            LinearLayout.LayoutParams backLp=new LinearLayout.LayoutParams(-1,dp(40));backLp.setMargins(dp(3),dp(3),dp(3),0);body.addView(back,backLp);}
+        if(project!=null){Button back=button("Back",()->{project=null;screen();});
+            back.setMinHeight(dp(48));back.setMinimumHeight(dp(48));back.setPadding(0,0,0,0);
+            back.setBackground(new InsetDrawable(shape(INPUT,12),0,dp(6),0,dp(6)));
+            LinearLayout.LayoutParams backLp=new LinearLayout.LayoutParams(-1,dp(48));
+            backLp.setMargins(dp(3),0,dp(3),0);body.addView(back,backLp);}
         status=text("",14,false);status.setTextColor(TEAL);status.setVisibility(View.GONE);body.addView(status);progress=new ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal);progress.setMax(100);body.addView(progress);progress.setVisibility(View.GONE);
         if(project==null)library();else editor();jobStatusOnly();}
     private void language(){pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Language")).setSingleChoiceItems(AppLanguage.languageLabels(),AppLanguage.indexOf(this),(d,n)->{AppLanguage.set(this,AppLanguage.codeAt(n));d.dismiss();screen();}).setNegativeButton(tr("Cancel"),null).show();}
@@ -89,13 +109,15 @@ public final class ProActivity extends Activity {
         body.addView(button("Privacy",()->ProPrivacy.show(this)));body.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));}
     private TextView projectName(String value){TextView name=text(value,18,true);name.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);name.setLayoutParams(new LinearLayout.LayoutParams(-1,-2));return name;}
     private void newProject(boolean pick){project=new ProProject();selected="";playheadUs=0;try{project.save(this);}catch(Exception e){error(e);}screen();if(pick)pick("video","video/*");}
-    private void editor(){pairControls(body,
+    private void editor(){headerControls(body,
             button("Rename",()->{pauseClipPlayback();EditText name=field(null,"Project name",project.name,false);new AlertDialog.Builder(this).setTitle(tr("Rename")).setView(name).setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Save"),(d,w)->{project.name=name.getText().toString().trim();if(project.name.isEmpty())project.name="Untitled video";changed(true);}).show();}),
             button("Import video",()->pick("video","video/*")));
         body.addView(projectName(project.name));FrameLayout display=new FrameLayout(this);display.setBackground(shape(0xff080b10,16));body.addView(display,new LinearLayout.LayoutParams(-1,dp(170)));
         preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);display.addView(preview,new FrameLayout.LayoutParams(-1,-1));
         clipPlayerView=new PlayerView(this);clipPlayerView.setUseController(false);clipPlayerView.setVisibility(View.GONE);display.addView(clipPlayerView,new FrameLayout.LayoutParams(-1,-1));if(project.clips.isEmpty()){TextView empty=text("Tap Import video to begin",14,false);empty.setGravity(Gravity.CENTER);display.addView(empty,new FrameLayout.LayoutParams(-1,-1));}
-        clipPlay=button("Play clip",this::toggleClipPlayback);clipPlay.setBackground(shape(ACCENT,14));body.addView(clipPlay,new LinearLayout.LayoutParams(-1,dp(50)));
+        clipPlay=button("Play clip",this::toggleClipPlayback);
+        clipPlay.setBackground(new InsetDrawable(shape(ACCENT,13),0,dp(6),0,dp(6)));
+        body.addView(clipPlay,new LinearLayout.LayoutParams(-1,dp(48)));
         clock=text("",14,false);clock.setGravity(Gravity.CENTER);body.addView(clock);seek=new SeekBar(this);seek.setMax(10000);seek.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onProgressChanged(SeekBar s,int value,boolean user){if(user&&!isBusy()){playheadUs=Math.round(project.timeline().durationUs*value/10000.0);clock();}}public void onStartTrackingTouch(SeekBar s){syncClipClock();stopClipPlayback();}public void onStopTrackingTouch(SeekBar s){List<ProTimeline.Entry> active=project.timeline().at(playheadUs);if(!active.isEmpty()&&!active.get(active.size()-1).id.equals(selected)){selected=active.get(active.size()-1).id;screen();}else requestStill();}});body.addView(seek);
         tracks=new Tracks();body.addView(tracks,new LinearLayout.LayoutParams(-1,dp(128)));
         HorizontalScrollView clips=new HorizontalScrollView(this);LinearLayout clipRow=row();clips.addView(clipRow);for(int i=0;i<project.clips.size();i++){ProProject.Clip c=project.clips.get(i);Button b=button((i+1)+" · "+c.name,()->{selected=c.id;playheadUs=project.timeline().byId(c.id).startUs;screen();});b.setBackground(shape(c.id.equals(selected)?ACCENT:INPUT,12));clipRow.addView(b,new LinearLayout.LayoutParams(dp(160),dp(44)));}body.addView(clips);
@@ -104,7 +126,7 @@ public final class ProActivity extends Activity {
             button("Captions",this::captionActions),
             button("Graphics",this::graphicActions));
         pairControls(body,button("Music",this::musicActions),button("Format",this::format));
-        gap(body,8);Button render=button("Edited preview",()->job("preview",720,"",""));Button export=button("Export",()->{pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Export")).setItems(new String[]{"720p · MP4","1080p · MP4"},(d,n)->job("export",n==0?720:1080,"","")).show();});export.setBackground(shape(ACCENT,14));pairControls(body,render,export);
+        Button render=button("Edited preview",()->job("preview",720,"",""));Button export=button("Export",()->{pauseClipPlayback();new AlertDialog.Builder(this).setTitle(tr("Export")).setItems(new String[]{"720p · MP4","1080p · MP4"},(d,n)->job("export",n==0?720:1080,"","")).show();});export.setBackground(shape(ACCENT,14));pairControls(body,render,export);
         body.addView(text("Play clip starts immediately. Edited preview includes captions, graphics and music.",13,false));body.addView(text("Changes saved on this phone",13,false));clock();requestStill();}
     private void toggleClipPlayback(){ProProject.Clip c=selected();if(c==null)return;
         if(clipPlayer!=null){if(clipPlayer.getPlayWhenReady()&&clipPlayer.getPlaybackState()!=Player.STATE_ENDED)pauseClipPlayback();else{if(clipPlayer.getPlaybackState()==Player.STATE_ENDED)clipPlayer.seekTo(0);clipPlayer.play();updateClipPlayback();}return;}

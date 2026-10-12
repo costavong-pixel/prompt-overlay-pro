@@ -4,7 +4,7 @@ import { isAbsolute } from 'node:path';
 
 const clientId=process.env.GOOGLE_WEB_CLIENT_ID||'';
 const databasePath=process.env.TRIAL_DB_PATH||'';
-if(!/^[A-Za-z0-9_-]+\\.apps\\.googleusercontent\\.com$/.test(clientId)||!databasePath){
+if(!/^[A-Za-z0-9_-]+[.]apps[.]googleusercontent[.]com$/.test(clientId)||!databasePath){
   throw new Error('Set valid GOOGLE_WEB_CLIENT_ID and TRIAL_DB_PATH; server not started');
 }
 // In production an ephemeral or relative SQLite file would reset every

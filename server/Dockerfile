@@ -6,7 +6,7 @@ ENV NODE_ENV=production \
     TRIAL_DB_PATH=/var/lib/prompt-overlay/entitlements.sqlite
 WORKDIR /srv/app
 COPY package*.json ./
-RUN npm install --omit=dev --no-audit --no-fund \
+RUN npm ci --omit=dev --no-audit --no-fund \
     && npm cache clean --force \
     && groupadd --gid 10001 appuser \
     && useradd --uid 10001 --gid 10001 --home-dir /nonexistent --no-create-home appuser \

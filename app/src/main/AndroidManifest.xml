@@ -56,6 +56,9 @@
                 <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
+        <!-- Not a public checkout: status-only alpha trial sign-in screen. -->
+        <activity android:name=".access.TrialAccountActivity"
+            android:enabled="${proEnabled}" android:exported="false" />
         <!-- User-initiated feedback with optional image/video evidence. -->
         <activity android:name=".pro.ProFeedbackActivity"
             android:exported="false"

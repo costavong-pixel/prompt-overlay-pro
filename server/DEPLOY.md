@@ -16,8 +16,10 @@ Basic Lifetime / Pro Monthly / Pro Lifetime. A paid monthly subscription
 
 ## What the owner needs to do once, in a grouped desktop session
 
-1. Choose a dedicated subdomain pointing to the chosen VPS, e.g.
-   `trial.barndai.com`. This is an **example only**: it has NOT been created.
+1. The owner selected **`teleprompter-trail.barndai.com`** as the dedicated
+   trial-service hostname (spelled **trail**, as requested). DNS and HTTPS
+   have **not** been configured or verified. Point its DNS record to the
+   chosen VPS only after confirming the machine and its existing services.
    Set an A/AAAA record, and ensure the VPS can serve HTTPS on port 443.
    We cannot assume the existing Barnd AI / SocialOlla VPS is Linux, has
    Docker, or is available; confirm the actual host and operating system.
@@ -40,7 +42,7 @@ Basic Lifetime / Pro Monthly / Pro Lifetime. A paid monthly subscription
    keys are needed merely for Google ID-token signature verification.
 4. Build an APK with the two **public identifiers**:
    - `trialGoogleWebClientId=<the WEB OAuth client ID>`
-   - `trialApiBaseUrl=https://<your trial host>`
+   - `trialApiBaseUrl=https://teleprompter-trail.barndai.com`
    Both values are compile-time Gradle properties. Rebuilding *without*
    them shows a deliberate “not configured” status and will not start a trial.
    Record the APK's actual signing certificate SHA-1 in the Android OAuth
@@ -87,7 +89,7 @@ other Nginx sites unchanged.
 Run the public health check after DNS and TLS are actually ready:
 
 ```bash
-bash deploy/check.sh https://YOUR_TRIAL_DOMAIN
+bash deploy/check.sh https://teleprompter-trail.barndai.com
 ```
 
 It checks `/health` returns 200, nonce endpoint returns 200, and that

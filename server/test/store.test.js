@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { TrialStore, TRIAL_MS } from '../src/store.js';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 test('90-day trial persists across sessions and identity',()=>{
   let now=2_000_000_000_000;
@@ -38,4 +41,27 @@ test('a different Google subject does not receive a previous trial timestamp',()
   assert.equal(s.entitlement(two.user).ownsProLifetime,false);
   assert.equal(s.userFromToken('fake-session'),null);
   s.close();
+});
+
+test('trial first activation persists across SQLite restarts and cannot reset on re-login',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'prompt-trial-test-'));
+  const path=join(dir,'accounts.sqlite');
+  let now=2_050_000_000_000;
+  try{
+    let db=new TrialStore(path,()=>now);
+    const first=db.signIn('stable-google-sub');
+    const userId=first.user.id;
+    const firstDeadline=db.entitlement(first.user).trialEndsAtMs;
+    db.close();
+    now+=91*24*60*60*1000;
+    db=new TrialStore(path,()=>now);
+    const second=db.signIn('stable-google-sub');
+    assert.equal(second.user.id,userId);
+    assert.equal(db.entitlement(second.user).trialEndsAtMs,firstDeadline);
+    assert.equal(db.entitlement(second.user).serverNowMs,now);
+    assert.ok(firstDeadline<now);
+    db.close();
+  }finally{
+    rmSync(dir,{recursive:true,force:true});
+  }
 });

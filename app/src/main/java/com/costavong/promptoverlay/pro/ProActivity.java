@@ -101,7 +101,7 @@ public final class ProActivity extends Activity {
         teleprompter.setBackground(shape(ACCENT,14));body.addView(teleprompter);
         body.addView(button("Edit a video",()->newProject(false)));
         // The feedback invitation is separate from public Play Store ratings.
-        Button feedback=button("Send feedback · Pro Lifetime opportunity",this::feedbackForm);
+        Button feedback=button("Win a FREE Lifetime License from Us",this::feedbackForm);
         feedback.setBackground(shape(CARD,14));body.addView(feedback);
         if(!ratingPrefs().getBoolean("rating_already_reviewed",false)){
             gap(body,12);
@@ -123,54 +123,9 @@ public final class ProActivity extends Activity {
             card.addView(projectName(p.name));card.addView(text(p.clips.size()+" · "+seconds(p.timeline().durationUs)+"s · "+p.format,14,false));
             pair(card,button("Open",()->{project=p;selected=p.clips.isEmpty()?"":p.clips.get(0).id;playheadUs=0;screen();}),button("Delete",()->new AlertDialog.Builder(this).setMessage(tr("Delete this project and its imported files?"))
                 .setNegativeButton(tr("Cancel"),null).setPositiveButton(tr("Delete"),(d,w)->{ProRenderEngine.erase(p.directory(this));screen();}).show()));}
-        gap(body,14);pair(body,button("Language",this::language),button("Rate app",this::openPlayListing));
-        body.addView(button("Privacy",()->ProPrivacy.show(this)));body.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));}
-    /**
-     * Functional feedback submission without a backend: open the user's own
-     * email app with a structured draft. We never silently upload projects,
-     * video, audio, personal information, or crash logs.
-     */
-    private void feedbackForm(){
-        LinearLayout content=column();
-        content.setPadding(dp(16),dp(8),dp(16),dp(14));
-        content.setLayoutDirection(AppLanguage.layoutDirection(this));
-        content.addView(text("We may select up to 500 users for Pro Lifetime based on useful private product feedback. Public Google Play ratings are not required.",13,false));
-        String[] topics={"Teleprompter","Video editor","Captions","Export","Usability","Other"};
-        Spinner topic=spinner(content,"Feature you tried",topics,0);
-        EditText tried=field(content,"What did you try?", "",false);
-        EditText outcome=field(content,"What happened? What should improve?","",false);
-        EditText steps=field(content,"Steps to reproduce or an actionable suggestion","",false);
-        TextView explanation=text("Submitting opens your email app. Review and send the message yourself. Do not include passwords, personal videos, or sensitive information.",12,false);
-        explanation.setTextColor(0xffb9c5d9);content.addView(explanation);
-
-        ScrollView scroller=new ScrollView(this);scroller.addView(content);
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle(tr("Send feedback"))
-            .setView(scroller).setNegativeButton(tr("Cancel"),null)
-            .setPositiveButton(tr("Continue to email"),null).create();
-        dialog.setOnShowListener(d->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
-            String a=tried.getText().toString().trim();
-            String b=outcome.getText().toString().trim();
-            String c=steps.getText().toString().trim();
-            if(a.length()<6||b.length()<15||c.length()<10){
-                toast("Please include what you tried, the problem or improvement, and useful details.");
-                return;
-            }
-            String selected=topics[topic.getSelectedItemPosition()];
-            String title="[Prompt Overlay feedback] "+selected+" · "+BuildConfig.VERSION_NAME;
-            String message="Prompt Overlay: "+BuildConfig.VERSION_NAME+
-                "\nFeature: "+selected+"\n\nWhat I tried:\n"+a+
-                "\n\nWhat happened / what should improve:\n"+b+
-                "\n\nSteps or concrete suggestion:\n"+c+
-                "\n\nDevice: "+Build.MANUFACTURER+" "+Build.MODEL+" (Android "+Build.VERSION.RELEASE+")"+
-                "\n\nPrivate product feedback; no Google Play review requested.";
-            Intent send=new Intent(Intent.ACTION_SENDTO,Uri.parse("mailto:support@barndai.com"));
-            send.putExtra(Intent.EXTRA_SUBJECT,title);send.putExtra(Intent.EXTRA_TEXT,message);
-            try{startActivity(Intent.createChooser(send,tr("Continue to email")));dialog.dismiss();}
-            catch(ActivityNotFoundException e){toast("No email app found. Please contact support@barndai.com.");}
-        }));
-        dialog.show();
-        dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
-    }
+        gap(body,14);pair(body,button("Language",this::language),button("Privacy",()->ProPrivacy.show(this)));body.addView(text("v"+BuildConfig.VERSION_NAME+" · "+BuildConfig.VERSION_CODE,12,false));}
+    /** Dedicated screen retains structured feedback when choosing photo/video evidence. */
+    private void feedbackForm(){startActivity(new Intent(this,ProFeedbackActivity.class));}
 
     private TextView projectName(String value){TextView name=text(value,18,true);name.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);name.setMaxLines(2);name.setEllipsize(android.text.TextUtils.TruncateAt.END);name.setLayoutParams(new LinearLayout.LayoutParams(-1,-2));return name;}
     private void newProject(boolean pick){project=new ProProject();selected="";playheadUs=0;try{project.save(this);}catch(Exception e){error(e);}screen();if(pick)pick("video","video/*");}

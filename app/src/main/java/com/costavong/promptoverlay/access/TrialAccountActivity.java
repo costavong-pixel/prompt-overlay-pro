@@ -116,7 +116,7 @@ public final class TrialAccountActivity extends Activity {
                     .addCredentialOption(option).build();
                 showStatus("Choose your Google account...");
                 CredentialManager.create(this).getCredentialAsync(
-                    this,request,new CancellationSignal(),getMainExecutor(),
+                    this,request,new CancellationSignal(),androidx.core.content.ContextCompat.getMainExecutor(this),
                     new CredentialManagerCallback<GetCredentialResponse,GetCredentialException>(){
                         @Override public void onResult(GetCredentialResponse result){
                             Credential credential=result.getCredential();

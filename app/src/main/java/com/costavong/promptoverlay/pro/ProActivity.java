@@ -101,11 +101,10 @@ public final class ProActivity extends Activity {
         teleprompter.setBackground(shape(ACCENT,14));body.addView(teleprompter);
         body.addView(button("Edit a video",()->newProject(false)));
         if(BuildConfig.PRO_TEST){
-            Button trial=button("90 DAYS FREE · All Features (setup)",
+            Button plans=button("90-Day Trial & Plans (preview)",
                 ()->startActivity(new Intent(this,
-                    com.costavong.promptoverlay.access.TrialAccountActivity.class)));
-            trial.setBackground(shape(ACCENT,14));body.addView(trial);
-            body.addView(text("No card, no automatic charges. After 90 days: Basic Lifetime, Pro Monthly, or Pro Lifetime. Trial activation is not connected in this test APK.",12,false));
+                    com.costavong.promptoverlay.access.PlansActivity.class)));
+            plans.setBackground(shape(ACCENT,14));body.addView(plans);
         }
         // The feedback invitation is separate from public Play Store ratings.
         Button feedback=button("Win a FREE Lifetime License from Us",this::feedbackForm);

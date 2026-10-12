@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/trial90-account-billing-stage1
+      - fix/alpha16-90day-trial-only
   pull_request:
     paths:
       - "server/**"

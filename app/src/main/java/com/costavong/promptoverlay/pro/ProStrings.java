@@ -4,6 +4,7 @@ import com.costavong.promptoverlay.AppLanguage;
 final class ProStrings {
     private static final String[][] WORDS={
         {"Close","Cerrar","Fermer","إغلاق"},
+        {"90-Day Trial & Plans (preview)","Prueba de 90 días y planes (vista previa)","Essai de 90 jours et offres (aperçu)","تجربة ٩٠ يومًا والخطط (معاينة)"},
         {"Projects","Proyectos","Projets","المشاريع"},{"New project","Nuevo proyecto","Nouveau projet","مشروع جديد"},
         {"Teleprompter","Teleprompter","Téléprompteur","الملقّن"},{"Language","Idioma","Langue","اللغة"},
         {"Import video","Importar vídeo","Importer une vidéo","استيراد فيديو"},{"Rename","Renombrar","Renommer","إعادة تسمية"},

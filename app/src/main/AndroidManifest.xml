@@ -56,6 +56,9 @@
                 <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
+        <!-- Read-only Play price discovery and a three-plan preview, no checkout. -->
+        <activity android:name=".access.PlansActivity"
+            android:exported="false" android:enabled="${proEnabled}" />
         <!-- Not a public checkout: status-only alpha trial sign-in screen. -->
         <activity android:name=".access.TrialAccountActivity"
             android:enabled="${proEnabled}" android:exported="false" />

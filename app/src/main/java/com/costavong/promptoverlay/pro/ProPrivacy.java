@@ -10,6 +10,14 @@ public final class ProPrivacy {
             case "ar":message="تبقى النصوص والمشاريع على هذا الهاتف. تُنسخ الفيديوهات والصور والموسيقى المستوردة إلى مساحة التطبيق الخاصة دون تعديل الملفات الأصلية. تُنشأ الترجمة النصية على الهاتف. عند الاستخدام الأول، تُنزّل حزمة كلام من خادم Vosk العام الذي يتلقى معلومات الاتصال المعتادة. لا يُرسل الفيديو أو الصوت إلى خدمة تفريغ. يمكنك حفظ فيديو مكتمل أو مشاركته عبر Android؛ وسيستلمه التطبيق الذي تختاره. لا توجد إعلانات أو تحليلات استخدام أو حسابات أو وصول إلى الكاميرا أو الميكروفون. يستخدم جهاز التحكم في الملقّن الشبكة المحلية.";break;
             default:message="Scripts and projects stay on this phone. Imported videos, images and music are copied into the app’s private storage; originals are not changed. Captions are created on the phone. The first use downloads a speech pack from Vosk’s public server, which receives normal connection information. Your video and audio are not sent to a transcription service. You can save or share a finished video using Android; your chosen app then receives that file. There are no ads, usage analytics, accounts, or camera/microphone access. The teleprompter’s remote uses your local network.";
         }
+        String feedbackNotice;
+        switch(AppLanguage.current(context)){
+            case "es":feedbackNotice="El formulario de comentarios solo comparte las fotos, vídeos o enlaces que tú elijas. Se abre tu aplicación de correo y debes revisar y enviar el mensaje. No se cargan datos automáticamente.";break;
+            case "fr":feedbackNotice="Le formulaire de retour ne partage que les photos, vidéos ou liens que vous choisissez. Votre messagerie s’ouvre et vous devez vérifier puis envoyer le message. Aucun envoi automatique.";break;
+            case "ar":feedbackNotice="نموذج الملاحظات يشارك فقط الصور أو الفيديوهات أو الروابط التي تختارها. يُفتح تطبيق بريدك لتراجع الرسالة وترسلها بنفسك. لا يتم إرسال بيانات تلقائيًا.";break;
+            default:feedbackNotice="The feedback form shares only the photos, videos, or links you choose. It opens your email app, where you review and send the message yourself. Nothing uploads automatically.";
+        }
+        message+="\n\n"+feedbackNotice;
         new AlertDialog.Builder(context).setTitle(ProStrings.t(context,"Privacy")).setMessage(message).setPositiveButton(ProStrings.t(context,"Close"),null).show();
     }
 }

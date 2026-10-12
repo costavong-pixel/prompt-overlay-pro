@@ -2,7 +2,7 @@
 # Run after public HTTPS deployment; must not send secrets into logs.
 set -euo pipefail
 if [ "$#" -ne 1 ]; then
-  printf 'Usage: ./check.sh https://your-trial-domain.example\n' >&2
+  printf 'Usage: ./check.sh https://teleprompter-trail.barndai.com\n' >&2
   exit 2
 fi
 url="${1%/}"

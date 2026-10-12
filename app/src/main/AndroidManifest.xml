@@ -56,6 +56,11 @@
                 <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
+        <!-- User-initiated feedback with optional image/video evidence. -->
+        <activity android:name=".pro.ProFeedbackActivity"
+            android:exported="false"
+            android:enabled="${proEnabled}"
+            android:windowSoftInputMode="adjustResize" />
         <service android:name=".pro.ProExportService" android:exported="false"
             android:enabled="${proEnabled}"
             android:foregroundServiceType="mediaProcessing|dataSync" />

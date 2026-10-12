@@ -1,0 +1,31 @@
+# Only exposed on the VPS loopback interface. Terminate HTTPS at Nginx/Caddy.
+# Do not publish port 8765 to 0.0.0.0 on the public host.
+services:
+  trial:
+    build: .
+    image: prompt-overlay-trial:stage1
+    restart: unless-stopped
+    init: true
+    environment:
+      NODE_ENV: production
+      GOOGLE_WEB_CLIENT_ID: ${GOOGLE_WEB_CLIENT_ID:?Set this in server/.env}
+      TRIAL_DB_PATH: /var/lib/prompt-overlay/entitlements.sqlite
+      HOST: 0.0.0.0
+      PORT: "8765"
+      # Only localhost/Docker-private peers may forward a client IP.
+      TRUST_PROXY: "internal"
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - trial-data:/var/lib/prompt-overlay
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,noexec,nosuid
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    cpus: 0.5
+volumes:
+  trial-data:

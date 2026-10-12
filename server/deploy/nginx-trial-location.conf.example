@@ -1,5 +1,6 @@
 # Put these directives inside a TLS-enabled server block for your chosen
-# subdomain (for example trial.barndai.com); do not expose this on plain HTTP.
+# selected subdomain teleprompter-trail.barndai.com; do not expose it on HTTP.
+# In its TLS server block, use: server_name teleprompter-trail.barndai.com;
 # HTTPS certificates, DNS and an Nginx server block must already exist.
 #
 # Client IP is SET, rather than APPENDED to user-supplied X-Forwarded-For.

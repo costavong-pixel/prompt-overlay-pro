@@ -7,19 +7,27 @@ paid entitlement solely from local preferences.
 
 ## Approved product direction
 
-- Download: free (permanent Google Play Console change; cannot revert to paid).
-- First activation: **90-day full-feature trial** covering all currently built
-  local Basic and Pro functionality, without a charge. Default proposal: no
-  credit card; trial keyed to a signed-in account and recorded server-side.
-  This is NOT Google Play's auto-renewing subscription free-trial offer.
-- After trial: users choose Basic Lifetime ($5.99 proposed), Pro Monthly
-  ($4.99/mo proposed), or Pro Lifetime ($39.99 proposed).
+- Single free offer: **90 days of full-feature access per user** from first
+  verified activation. The previously discussed **14-day promotion is removed**.
+  There is no second free-download countdown or launch sale in this plan.
+- Store pricing strategy: Google Play app becomes free to **install**, with
+  time-limited 90-day full access after Google sign-in. Changing a paid app to
+  free is permanent and must be performed only when real entitlements are ready.
+- **No credit card** required to activate the trial. **No auto-renewal or
+  automatic charge** when it expires. This is a server-managed access trial,
+  NOT Google Play's auto-renewing subscription free-trial offer.
+- For exactly 90 days each verified account can use every currently available
+  local Basic and Pro feature; trial keyed to server-side account activation.
+- After trial, user chooses one of three paid entitlements: Basic Lifetime
+  ($5.99 target once), Pro Monthly ($4.99 target per month), or Pro Lifetime
+  ($39.99 target once). Actual checkout prices are supplied by Google Play.
 - Keep feedback and account recovery accessible after expiration. Do not delete
   existing projects or script data when trial expires.
 - Future metered cloud AI is outside the free-trial/lifetime entitlement until
   a separate, explicit credit policy is approved. No current cloud AI exists.
-- Customers who paid for Basic before the paid-to-free conversion must retain
-  **Basic lifetime**. Ensure a genuine migration path *before* conversion.
+- Owner reports **no customer purchases yet**. Verify actual sales in Play
+  Console before permanent free conversion; if any existing purchases appear,
+  preserve their Basic Lifetime access. Keep this safety branch in code.
 
 ## Product IDs (to create in Play Console)
 
@@ -75,8 +83,12 @@ Suggested minimum HTTPS API:
 - Consider limited offline access via previously verified short-lived
   entitlements; no indefinite unsigned local flags.
 
-The beta currently has no billing dependency, account integration, or server
-entitlement endpoint. These must be built and tested before free conversion.
+As of Alpha 15, the repo includes a Billing SDK dependency but **no real
+checkout**, plus a prototype Google sign-in screen and a server-side 90-day
+trial API. The API still requires deployment and OAuth configuration. The
+prototype neither activates real customer access nor enforces feature locks.
+A separate, verified purchase-processing implementation is required before
+the permanent Play Store free conversion.
 
 ## In-app feedback: immediate alpha prototype
 
@@ -138,19 +150,22 @@ unintentional loss of rights for paid Basic customers.
 
 ## Required milestones (and hard gates)
 
-1. Define feature matrix and exact post-trial lock behavior, resolve legacy
-   paid-user migration, choose no-card sign-in vs Play subscription free trial.
+1. Confirm final feature matrix and post-trial locks. Owner selected a
+   no-card 90-day server trial, with NO 14-day promotion or subscription
+   trial auto-renewal. Verify Play Console purchase count before any switch.
 2. Build authenticated trial backend with trial-restoration tests.
 3. Build Play Billing 9.x, three Play products, verify tokens server-side,
    acknowledgement, restoration, refunds, cancellations, grace periods.
 4. Connect feature gates to the production package; remove debug bypasses.
 5. Feedback service and selection admin: audit 500 awards and promo code
    issuance, anti-spam, privacy, feedback receipt.
-6. Full real-device and Play license-test matrix (including no account, paid
-   legacy Basic, no network, reinstall, account switch, trial day 89/90, new
-   monthly, canceled monthly, lifetime, award, refund).
+6. Full real-device and Play license-test matrix (including no account,
+   verified historical Basic purchases if any, no network, reinstall, account
+   switch, trial days 0/89/90, new monthly, canceled monthly, lifetime,
+   feedback award, and refund).
 7. Test signed Play release, privacy/data safety and published feature copy,
-   then **only** switch Play app pricing from paid to free.
+   then **only** switch the Play app from paid download to permanently
+   free download, with the 90-day access limit enforced inside the app.
 
 ## Evidence and policy sources (as of Oct 2026)
 

@@ -17,7 +17,7 @@ public final class ProPrivacy {
             case "ar":feedbackNotice="نموذج الملاحظات يشارك فقط الصور أو الفيديوهات أو الروابط التي تختارها. يُفتح تطبيق بريدك لتراجع الرسالة وترسلها بنفسك. لا يتم إرسال بيانات تلقائيًا.";break;
             default:feedbackNotice="The feedback form shares only the photos, videos, or links you choose. It opens your email app, where you review and send the message yourself. Nothing uploads automatically.";
         }
-        message+="\\n\\n"+feedbackNotice;
+        message+="\n\n"+feedbackNotice;
         new AlertDialog.Builder(context).setTitle(ProStrings.t(context,"Privacy")).setMessage(message).setPositiveButton(ProStrings.t(context,"Close"),null).show();
     }
 }

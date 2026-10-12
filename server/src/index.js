@@ -1,10 +1,17 @@
 import { TrialStore } from './store.js';
 import { createApp, makeGoogleVerifier } from './app.js';
+import { isAbsolute } from 'node:path';
 
 const clientId=process.env.GOOGLE_WEB_CLIENT_ID||'';
 const databasePath=process.env.TRIAL_DB_PATH||'';
-if(!clientId.endsWith('.apps.googleusercontent.com')||!databasePath){
-  throw new Error('Set GOOGLE_WEB_CLIENT_ID and TRIAL_DB_PATH; server not started');
+if(!/^[A-Za-z0-9_-]+\\.apps\\.googleusercontent\\.com$/.test(clientId)||!databasePath){
+  throw new Error('Set valid GOOGLE_WEB_CLIENT_ID and TRIAL_DB_PATH; server not started');
+}
+// In production an ephemeral or relative SQLite file would reset every
+// customer's 90-day clock after a container replacement or directory change.
+if(process.env.NODE_ENV==='production' &&
+    (!isAbsolute(databasePath)||databasePath===':memory:')){
+  throw new Error('Production TRIAL_DB_PATH must be an absolute persistent file path');
 }
 const store=new TrialStore(databasePath);
 const app=createApp({store,verifyGoogleToken:makeGoogleVerifier(clientId)});

@@ -16,7 +16,7 @@ android {
     // Public identifiers, not secrets. The test binary remains disabled until
     // the real OAuth Web client and backend HTTPS endpoint are configured.
     def trialOauthId = providers.gradleProperty("trialGoogleWebClientId").getOrElse("")
-    def trialApiUrl = providers.gradleProperty("trialApiBaseUrl").getOrElse("")
+    def trialApiUrl = providers.gradleProperty("trialApiBaseUrl").getOrElse("https://teleprompter-trail.barndai.com")
     if (trialOauthId && !(trialOauthId ==~ /[A-Za-z0-9_-]+\.apps\.googleusercontent\.com/)) {
         throw new GradleException("Invalid trialGoogleWebClientId")
     }

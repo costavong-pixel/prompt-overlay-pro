@@ -80,16 +80,34 @@ entitlement endpoint. These must be built and tested before free conversion.
 
 ## In-app feedback: immediate alpha prototype
 
-The current branch adds an obvious **Send feedback** entry on the Pro home
-screen. Its structured form asks which feature was tried, what happened, and
-reproduction steps or a concrete suggestion. It opens an email draft addressed
-to the **publicly listed** support address support@barndai.com. The user
-reviews and sends the email; the app does not silently upload their data.
-This functional initial mechanism can later be replaced with the HTTPS
-feedback endpoint and an in-app submission receipt/dashboard.
+Alpha 14 updates the Pro home action to **Win a FREE Lifetime License from Us**
+and removes the duplicated small Rate app button. A dedicated feedback screen
+explicitly states **"We will choose 500 users"** based on the quality of private,
+actionable, and specific product feedback; no one is guaranteed selection.
+Google Play ratings or reviews are not required and do not affect selection.
+
+The form asks what feature was tried, the observed issue or improvement,
+and reproducible steps, with OPTIONAL supporting evidence:
+- Attach up to four user-picked **image/video** files, limited to **15 MiB
+  in total**, using Android's Storage Access Framework. Only the selected
+  media are passed into a system email chooser with read URI grants; no
+  automatic video/audio upload or scanning of other user files.
+- Paste an optional shared **http(s) link** for large clips or screenshots.
+  The user must grant view access to the intended recipient themselves.
+- A labeled list displays attached files and lets users remove them.
+- The app constructs a reviewable email to **support@barndai.com**. The user
+  must actually send it from their email app. Opening the chooser does NOT
+  establish successful delivery, submission, eligibility, or award.
+
+The email address is inherited from the prior prototype and its delivery
+has **not** been verified. Owner must confirm the support mailbox receives
+attachments before public rollout. A formal selection policy, enrollment
+deadline and final Pro Lifetime award mechanics are still pending.
+For scaled use, replace the email draft with an authenticated HTTPS feedback
+endpoint and in-app submission receipt/dashboard.
 
 Feedback program:
-- May select up to **500** participants for Pro Lifetime, based on useful,
+- Will select **500** participants for Pro Lifetime when the program is launched, based on useful,
   actionable **private** product feedback (including critical/negative
   feedback), not enthusiasm.
 - Public Google Play ratings/reviews must be fully independent. Never

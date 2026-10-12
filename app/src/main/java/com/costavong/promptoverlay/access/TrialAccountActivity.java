@@ -65,15 +65,25 @@ public final class TrialAccountActivity extends Activity {
         LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(20),dp(18),dp(20),dp(24));scroll.addView(content);setContentView(scroll);
         add(content,button("Back",CARD,this::finish));
-        add(content,text("90-day full-feature trial",24,true));
-        add(content,text("Try the teleprompter and current Pro video editor for 90 days, without a credit card.",15,false));
-        add(content,text("Sign in with Google so your trial doesn't reset when you reinstall the app.",13,false));
+        add(content,text("90 DAYS FREE · ALL FEATURES",24,true));
+        add(content,text("One 90-day trial includes every currently available Basic and Pro feature: teleprompter, editing, captions and export.",15,false));
+        add(content,text("No credit card required. No automatic subscription or charge. Your trial begins when Google sign-in is verified.",13,false));
+        add(content,text("Google sign-in keeps your original 90-day deadline after reinstalling the app.",13,false));
         status=text("",15,true);add(content,status);
         signIn=button("Sign in with Google",BLUE,this::beginGoogleSignIn);add(content,signIn);
         refresh=button("Refresh access",CARD,this::refreshEntitlements);add(content,refresh);
         signOut=button("Sign out",CARD,this::logout);add(content,signOut);
-        add(content,text("After the trial: Basic $5.99 one-time, Pro $4.99/month or Pro $39.99 lifetime (proposed prices).",13,false));
-        add(content,text("Development build: purchase buttons and real feature locks are not active. We will not charge you.",12,false));
+        add(content,text("AFTER YOUR 90 DAYS",17,true));
+        add(content,text("Choose only if you want to continue; nothing renews automatically:",13,false));
+        add(content,text("Basic Lifetime · "+TrialOffer.BASIC_TARGET_USD+" once",15,true));
+        add(content,text("Keep the Basic teleprompter features forever.",12,false));
+        add(content,text("Pro Monthly · "+TrialOffer.PRO_MONTHLY_TARGET_USD+" / month",15,true));
+        add(content,text("Keep all current Pro features while subscribed.",12,false));
+        add(content,text("Pro Lifetime · "+TrialOffer.PRO_LIFETIME_TARGET_USD+" once",15,true));
+        add(content,text("Keep all current non-AI Pro features permanently.",12,false));
+        add(content,text("We will choose 500 users for free Pro Lifetime licenses based on detailed private product feedback, independently of Google Play reviews.",12,false));
+        add(content,text("Target USD prices only; Google Play will show actual local prices when checkout becomes available.",12,false));
+        add(content,text("TEST BUILD: this screen cannot activate a real trial until the owner connects Google OAuth and the HTTPS trial service. Purchases and feature locks are not enabled. No payment is collected.",12,false));
         session=vault.restore();
         if(!TrialApi.configured()){
             showStatus("Google sign-in is not configured yet. The owner must connect a verified HTTPS trial server and OAuth Web client.");
@@ -163,7 +173,7 @@ public final class TrialAccountActivity extends Activity {
             case LEGACY_PAID_BASIC:case BASIC_LIFETIME:
                 showStatus("Basic Lifetime access recorded on server");break;
             case TRIAL_ENDED:
-                showStatus("90-day trial finished. Payment choices are not enabled in this development build.");break;
+                showStatus("Your 90-day free trial has ended. Choose Basic Lifetime, Pro Monthly, or Pro Lifetime when checkout launches. No automatic charges.");break;
             default: showStatus("Access verification required; no entitlement granted");
         }
     }

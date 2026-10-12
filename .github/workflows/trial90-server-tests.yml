@@ -12,7 +12,7 @@ on:
       - ".github/workflows/trial90-server-tests.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   trial-server-tests:
@@ -26,6 +26,20 @@ jobs:
       - name: Resolve an npm lockfile for reproducible server builds
         run: npm install --package-lock-only --no-audit --no-fund
         working-directory: server
+      # One-time bootstrap: preserve the generated lockfile on this isolated
+      # development branch. Removed once the lockfile is committed.
+      - name: Commit generated lockfile on development branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/trial90-deployment-bridge'
+        run: |
+          if git ls-files --error-unmatch server/package-lock.json >/dev/null 2>&1; then
+            echo "Lockfile is already committed"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add server/package-lock.json
+            git commit -m "Lock production Node dependencies for trial server"
+            git push origin HEAD:refs/heads/feature/trial90-deployment-bridge
+          fi
       - name: Install from locked dependencies
         run: npm ci --no-audit --no-fund
         working-directory: server

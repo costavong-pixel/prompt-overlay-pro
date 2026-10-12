@@ -74,7 +74,7 @@ public final class TrialAccountActivity extends Activity {
         refresh=button("Refresh access",CARD,this::refreshEntitlements);add(content,refresh);
         signOut=button("Sign out",CARD,this::logout);add(content,signOut);
         add(content,text("AFTER YOUR 90 DAYS",17,true));
-        add(content,text("Choose only if you want to continue; nothing renews automatically:",13,false));
+        add(content,text("The trial ends automatically with no charge. Only a Pro Monthly subscription you actively purchase would renew until canceled:",13,false));
         add(content,text("Basic Lifetime · "+TrialOffer.BASIC_TARGET_USD+" once",15,true));
         add(content,text("Keep the Basic teleprompter features forever.",12,false));
         add(content,text("Pro Monthly · "+TrialOffer.PRO_MONTHLY_TARGET_USD+" / month",15,true));

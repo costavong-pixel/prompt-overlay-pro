@@ -1,0 +1,29 @@
+name: 90-day trial server tests
+
+on:
+  push:
+    branches:
+      - feature/trial90-account-billing-stage1
+  pull_request:
+    paths:
+      - "server/**"
+      - ".github/workflows/trial90-server-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  trial-server-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install server dependencies
+        run: npm install --no-audit --no-fund
+        working-directory: server
+      - name: Test account-based trial, replay, and fail-closed billing
+        run: npm test
+        working-directory: server

@@ -100,6 +100,10 @@ public final class ProActivity extends Activity {
         Button teleprompter=button("Open teleprompter",()->startActivity(new Intent(this,MainActivity.class).putExtra("open_basic",true)));
         teleprompter.setBackground(shape(ACCENT,14));body.addView(teleprompter);
         body.addView(button("Edit a video",()->newProject(false)));
+        if(BuildConfig.PRO_TEST)
+            body.addView(button("90-day Pro trial · Sign in (setup)",
+                ()->startActivity(new Intent(this,
+                    com.costavong.promptoverlay.access.TrialAccountActivity.class))));
         // The feedback invitation is separate from public Play Store ratings.
         Button feedback=button("Win a FREE Lifetime License from Us",this::feedbackForm);
         feedback.setBackground(shape(CARD,14));body.addView(feedback);

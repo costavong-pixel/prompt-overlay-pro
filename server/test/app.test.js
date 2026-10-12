@@ -50,11 +50,21 @@ test('Google login requires valid token and one-time nonce, only first sign-in a
     const failClosed=await request('/v1/purchases/verify',{method:'POST',headers:{Authorization:'Bearer '+t},body:'{}'});
     assert.equal(failClosed.code,503);
     setNow(2_000_000_000_000+91*24*60*60*1000);
-    const later=await request('/v1/entitlements',{headers:{Authorization:'Bearer '+t}});
-    assert.equal(later.code,200);
-    assert.equal(later.body.serverNowMs,2_000_000_000_000+91*24*60*60*1000);
-    const out=await request('/v1/logout',{method:'POST',headers:{Authorization:'Bearer '+t}});
-    assert.equal(out.code,204);
+    // The 30-day bearer session expires, but a new Google login must
+    // preserve the original 90-day trial start rather than restarting it.
     assert.equal((await request('/v1/entitlements',{headers:{Authorization:'Bearer '+t}})).code,401);
+    const newNonce=await request('/v1/auth/nonce');
+    setNonce(newNonce.body.nonce);
+    const again=await request('/v1/auth/google',{method:'POST',body:JSON.stringify({
+      idToken:'X'.repeat(101),nonce:newNonce.body.nonce})});
+    assert.equal(again.code,200);
+    const laterToken=again.body.sessionToken;
+    const later=await request('/v1/entitlements',{headers:{Authorization:'Bearer '+laterToken}});
+    assert.equal(later.code,200);
+    assert.equal(later.body.trialActivatedAtMs,2_000_000_000_000);
+    assert.equal(later.body.serverNowMs,2_000_000_000_000+91*24*60*60*1000);
+    const out=await request('/v1/logout',{method:'POST',headers:{Authorization:'Bearer '+laterToken}});
+    assert.equal(out.code,204);
+    assert.equal((await request('/v1/entitlements',{headers:{Authorization:'Bearer '+laterToken}})).code,401);
   });
 });

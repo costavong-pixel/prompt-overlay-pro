@@ -13,13 +13,26 @@ android {
         buildConfig true
     }
 
+    // Public identifiers, not secrets. The test binary remains disabled until
+    // the real OAuth Web client and backend HTTPS endpoint are configured.
+    def trialOauthId = providers.gradleProperty("trialGoogleWebClientId").getOrElse("")
+    def trialApiUrl = providers.gradleProperty("trialApiBaseUrl").getOrElse("")
+    if (trialOauthId && !(trialOauthId ==~ /[A-Za-z0-9_-]+\.apps\.googleusercontent\.com/)) {
+        throw new GradleException("Invalid trialGoogleWebClientId")
+    }
+    if (trialApiUrl && !(trialApiUrl ==~ /https:\/\/[A-Za-z0-9.-]+(:[0-9]+)?/)) {
+        throw new GradleException("trialApiBaseUrl must be an HTTPS host (no path)")
+    }
+
     defaultConfig {
         applicationId "com.costavong.promptoverlay"
         minSdk 26
         targetSdk 36
-        // Pro alpha 14 feedback evidence test; Google Play pricing is configured in the Console.
-        versionCode 50
-        versionName "2.0.0-pro-alpha14"
+        // Trial identity prototype only. Production still excludes Pro editor.
+        versionCode 51
+        versionName "2.0.0-pro-alpha15-trial"
+        buildConfigField "String", "TRIAL_WEB_CLIENT_ID", "\"${trialOauthId}\""
+        buildConfigField "String", "TRIAL_API_URL", "\"${trialApiUrl}\""
         buildConfigField "boolean", "PRO_TEST", "false"
         resValue "string", "app_name", "Prompt Overlay"
         manifestPlaceholders = [proEnabled: "false"]
@@ -48,7 +61,7 @@ android {
         debug {
             // Lets this test app live beside the Play-installed app on the
             // same phone, with its own overlay permission and local settings.
-            applicationIdSuffix ".proalpha14"
+            applicationIdSuffix ".proalpha15"
             buildConfigField "boolean", "PRO_TEST", "true"
             resValue "string", "app_name", "Prompt Overlay Pro Test"
             manifestPlaceholders = [proEnabled: "true"]
@@ -74,6 +87,11 @@ dependencies {
     implementation "androidx.media3:media3-exoplayer:1.11.1"
     implementation "androidx.media3:media3-ui:1.11.1"
     implementation "androidx.core:core:1.17.0"
+    implementation "androidx.credentials:credentials:1.6.0"
+    implementation "androidx.credentials:credentials-play-services-auth:1.6.0"
+    implementation "com.google.android.libraries.identity.googleid:googleid:1.2.1"
+    // Purchase server validation is not yet enabled; do not launch checkout.
+    implementation "com.android.billingclient:billing:9.1.0"
     implementation "com.alphacephei:vosk-android:0.3.75@aar"
     implementation "net.java.dev.jna:jna:5.19.1@aar"
     testImplementation "junit:junit:4.13.2"

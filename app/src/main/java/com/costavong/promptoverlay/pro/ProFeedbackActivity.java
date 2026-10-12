@@ -101,6 +101,15 @@ public final class ProFeedbackActivity extends Activity {
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(true);
+        if(Build.VERSION.SDK_INT>=35){
+            scroll.setOnApplyWindowInsetsListener((v,insets)->{
+                android.graphics.Insets bars=insets.getInsets(
+                    android.view.WindowInsets.Type.systemBars()|android.view.WindowInsets.Type.displayCutout());
+                v.setPadding(bars.left,bars.top,bars.right,bars.bottom);
+                return insets;
+            });
+            scroll.requestApplyInsets();
+        }
         LinearLayout root=column();root.setPadding(dp(18),dp(12),dp(18),dp(28));
         root.setLayoutDirection(AppLanguage.layoutDirection(this));
         root.setFocusableInTouchMode(true);scroll.addView(root);setContentView(scroll);

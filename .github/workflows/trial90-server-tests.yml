@@ -5,6 +5,7 @@ on:
     branches:
       - feature/trial90-account-billing-stage1
       - fix/alpha16-90day-trial-only
+      - feature/trial90-deployment-bridge
   pull_request:
     paths:
       - "server/**"
@@ -22,9 +23,39 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install server dependencies
-        run: npm install --no-audit --no-fund
+      - name: Resolve an npm lockfile for reproducible server builds
+        run: npm install --package-lock-only --no-audit --no-fund
+        working-directory: server
+      - name: Install from locked dependencies
+        run: npm ci --no-audit --no-fund
         working-directory: server
       - name: Test account-based trial, replay, and fail-closed billing
         run: npm test
         working-directory: server
+      - name: Upload locked dependency tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: trial90-server-npm-lockfile
+          path: server/package-lock.json
+          retention-days: 3
+          if-no-files-found: error
+      - name: Build isolated deployment container
+        run: docker build --tag prompt-trial-ci:latest server
+      - name: Boot trial container on loopback only
+        env:
+          GOOGLE_WEB_CLIENT_ID: example-ci.apps.googleusercontent.com
+        run: |
+          cd server
+          docker compose up --build --detach
+          for i in $(seq 1 25); do
+            if curl -fsS --max-time 2 http://127.0.0.1:8765/health | grep -q '"ok":true'; then break; fi
+            sleep 1
+          done
+          curl --fail --show-error --silent http://127.0.0.1:8765/health
+          status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8765/v1/entitlements)"
+          test "$status" = 401
+      - name: Cleanup trial container
+        if: always()
+        env:
+          GOOGLE_WEB_CLIENT_ID: example-ci.apps.googleusercontent.com
+        run: docker compose -f server/compose.yaml down --volumes --remove-orphans || true

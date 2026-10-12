@@ -100,6 +100,7 @@ public final class ProFeedbackActivity extends Activity {
         getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);scroll.setBackgroundColor(BG);
+        if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(true);
         LinearLayout root=column();root.setPadding(dp(18),dp(12),dp(18),dp(28));
         root.setLayoutDirection(AppLanguage.layoutDirection(this));
         root.setFocusableInTouchMode(true);scroll.addView(root);setContentView(scroll);

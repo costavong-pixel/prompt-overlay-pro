@@ -1,14 +1,21 @@
 # Prompt Overlay Pro
 
-Android teleprompter and local video-editor prototype. Current version:
-**2.0.0-pro-alpha8** (version code 44).
+Android floating teleprompter and local four-track video-editor prototype.
+Current development candidate: **2.0.0-pro-alpha16 (version code 52)**.
 
-Alpha 8 adds small, translated information icons beside the video editor’s main actions. Each explains how the action works; it needs phone testing. Alpha 7 first added the Graphics help explanation. Alpha 6 removed the unwanted onboarding tutorial, made the home screen a direct choice between teleprompter and video editing, constrained long project names, and added a translated one-time rating prompt plus a permanent Rate app button. This is an alpha. Alpha 3 added immediate playback of the selected source clip inside the
-editor, without rendering, and the user confirmed the new Play clip button
-works on the phone. Alpha 2 phone testing
-confirmed short 720p and approximately 30-second 1080p exports, trim/edit
-exports, captions and music; this does not validate every language, effect or
-long-video case. Purchases and restore are not implemented.
+**Pricing and access decision:** One 90-day no-card, non-renewing free trial
+unlocks all Basic and current Pro features. Afterwards the customer can choose
+Basic Lifetime ($5.99 USD target), Pro Monthly ($4.99/month target), or Pro
+Lifetime ($39.99 USD target). The 14-day promotional sale is **cancelled**.
+We will choose 500 people for Pro Lifetime based on substantive private
+feedback; public Google Play ratings are not rewarded.
+
+**Development status:** Alpha 16 updates offer wording and tests, but does
+not yet provide working Google sign-in without an OAuth Web Client ID and
+deployed HTTPS trial service. Google Play purchases, subscription validation,
+actual feature locks, refund handling and restoration are not implemented.
+The published paid Basic listing is unchanged. Do not convert the app to
+free in Google Play Console until payment and trial verification pass testing.
 
 ## Features
 
@@ -41,7 +48,7 @@ Install JDK 17 and Android SDK platform 36 / build-tools 36.0.0. Set
 ```
 
 The default test APK targets ARM64 and installs as **Prompt Overlay Pro Test**
-(`com.costavong.promptoverlay.proalpha8`) beside the published Basic app. It uses
+(`com.costavong.promptoverlay.proalpha16`) beside the published Basic app. It uses
 the local Android debug signing identity; no keystore is included here.
 
 For an x86_64 emulator:

@@ -1,0 +1,19 @@
+[Unit]
+Description=Backup Prompt Overlay trial SQLite database
+ConditionPathExists=/var/lib/prompt-overlay-trial/entitlements.sqlite
+
+[Service]
+Type=oneshot
+User=promptoverlay
+Group=promptoverlay
+WorkingDirectory=/opt/prompt-overlay-trial/app/server
+ExecStart=/opt/prompt-overlay-trial/runtime/current/bin/node deploy/backup-trial-db.mjs /var/lib/prompt-overlay-trial/entitlements.sqlite /var/lib/prompt-overlay-trial/backups
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/prompt-overlay-trial
+CapabilityBoundingSet=
+RestrictSUIDSGID=true
+LockPersonality=true

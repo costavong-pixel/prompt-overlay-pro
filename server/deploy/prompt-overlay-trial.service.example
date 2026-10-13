@@ -1,0 +1,32 @@
+[Unit]
+Description=Prompt Overlay 90-day trial API
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=promptoverlay
+Group=promptoverlay
+WorkingDirectory=/opt/prompt-overlay-trial/app/server
+EnvironmentFile=/etc/prompt-overlay-trial/trial.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=18765
+Environment=TRIAL_DB_PATH=/var/lib/prompt-overlay-trial/entitlements.sqlite
+Environment=TRUST_PROXY=internal
+ExecStart=/opt/prompt-overlay-trial/runtime/current/bin/node src/index.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/prompt-overlay-trial
+CapabilityBoundingSet=
+RestrictSUIDSGID=true
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

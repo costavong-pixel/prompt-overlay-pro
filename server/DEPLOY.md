@@ -54,37 +54,74 @@ Basic Lifetime / Pro Monthly / Pro Lifetime. A paid monthly subscription
 Official Google Android OAuth instructions:
 https://developer.android.com/identity/sign-in/credential-manager-siwg-implementation
 
-## Isolated Linux deployment with Docker
+## Docker-free isolated Linux deployment
 
-Choose a **dedicated** folder / subdomain so no currently operating service
-is replaced. The commands below assume Docker Compose v2, DNS and a working
-TLS proxy on the VPS; do not run them against a machine you haven't inspected.
+Use a dedicated system account, working directory, data directory, service
+name, and loopback-only port. This is the preferred path for a host that
+already uses systemd and Nginx. Do not install or replace the host's global
+Node.js package: install a verified Node 22 runtime under the dedicated
+application directory instead.
+
+Before creating anything, capture the active services, Nginx config test, and
+all listening ports. Select a port only after a live check; `18765` is the
+example below and is never a guarantee that the port is free.
 
 ```bash
-# Example only — do not overwrite other application directories.
-git clone -b feature/trial90-deployment-bridge \
-  https://github.com/costavong-pixel/prompt-overlay-pro.git /opt/prompt-overlay
-cd /opt/prompt-overlay/server
-cp .env.example .env
-# Edit GOOGLE_WEB_CLIENT_ID=<Web OAuth client ID>
-nano .env
-
-# Ensure nothing else already uses the local port.
-ss -ltnp | grep ':8765' || true
-
-# Starts a non-root Node 22 container and a durable SQLite volume. The VPS
-# exposes it ONLY to localhost; not directly to the public internet.
-docker compose up -d --build
-docker compose ps
-curl --fail --silent http://127.0.0.1:8765/health
+ss -ltnp | grep ':18765' || true
+git clone --no-checkout --branch feature/trial90-deployment-bridge \
+  https://github.com/costavong-pixel/prompt-overlay-pro.git /opt/prompt-overlay-trial/app
+cd /opt/prompt-overlay-trial/app
+git checkout --detach <owner-approved-immutable-commit>
+test "$(git rev-parse HEAD)" = "<owner-approved-immutable-commit>"
 ```
 
-Deploy the `deploy/nginx-trial-location.conf.example` rules *inside* an
-existing valid TLS Nginx server block for your chosen subdomain. The sample
-overwrites `X-Forwarded-For` so that users cannot forge the address the
-rate limiter sees. Never expose the backend's port 8765 publicly or configure
-`trust proxy=true`. Protect port 443 with a trusted TLS certificate. Keep your
-other Nginx sites unchanged.
+Provision an unprivileged `promptoverlay` account with writable data only at
+`/var/lib/prompt-overlay-trial`. Keep source and the private Node 22 runtime
+under `/opt/prompt-overlay-trial` root-owned and not writable by the service
+account. Copy `deploy/prompt-overlay-trial.service.example` into the systemd
+unit directory only after reviewing its exact paths and creating a private,
+root-owned `/etc/prompt-overlay-trial/trial.env` from `.env.example`.
+
+The private environment must provide a valid public `GOOGLE_WEB_CLIENT_ID`,
+set `PORT=18765` only if the current port check is clear, and use the persistent
+`/var/lib/prompt-overlay-trial/entitlements.sqlite` path. The service must bind
+to `127.0.0.1` only. A missing or invalid Web OAuth ID is intentionally a
+startup failure; do not bypass it with a fake public login configuration.
+
+Run the service's loopback checks before creating any public route:
+
+```bash
+curl --fail --silent http://127.0.0.1:18765/health
+curl --fail --silent -o /dev/null http://127.0.0.1:18765/v1/auth/nonce
+test "$(curl --silent -o /dev/null -w '%{http_code}' http://127.0.0.1:18765/v1/entitlements)" = 401
+```
+
+`deploy/backup-trial-db.mjs` makes an online SQLite backup through the same
+Node dependency used by the service. The paired systemd backup service and
+timer templates keep backups under `/var/lib/prompt-overlay-trial/backups`.
+Enable either unit only after reviewing retention, encrypted off-host storage,
+and access control for customer account data.
+
+### Dedicated HTTPS route
+
+Deploy `deploy/nginx-trial-location.conf.example` only inside a **new**, host
+specific TLS virtual host for `teleprompter-trail.barndai.com`. It proxies to
+the selected loopback port and replaces `X-Forwarded-For`; never append an
+attacker-supplied header, expose the Node port publicly, or use
+`trust proxy=true`.
+
+Creating a site file, enabling it, reloading Nginx, issuing a certificate,
+changing firewall rules, or changing DNS touches shared infrastructure. First
+show the exact vhost diff, certificate method, rollback command, immutable
+commit, port check, and baseline health of neighboring services; obtain owner
+approval before applying those changes.
+
+### Optional future Docker path
+
+Docker is not required for the systemd deployment above. If it is later used,
+the Compose file has the explicit `prompt-overlay-trial` project name and uses
+`TRIAL_HOST_PORT` for a loopback-only host mapping. Do not install Docker or
+use the optional path without separate owner approval.
 
 Run the public health check after DNS and TLS are actually ready:
 
@@ -98,10 +135,11 @@ real Google token, buy a product, or activate the 90-day trial.
 
 ## Security and continuity
 
-- `TRIAL_DB_PATH=/var/lib/prompt-overlay/entitlements.sqlite` is backed by
-  Docker's named `trial-data` volume, not ephemeral container storage.
-  Preserve and back up this database and its SQLite WAL files together.
-  Never use `:memory:` as the production trial database.
+- `TRIAL_DB_PATH=/var/lib/prompt-overlay-trial/entitlements.sqlite` belongs to
+  the dedicated service account and is not ephemeral. Use the provided online
+  SQLite backup helper or an equivalent atomic backup process; never copy a
+  live SQLite main file without its WAL state. Never use `:memory:` in
+  production.
 - The trial begins at the **first verified Google sign-in** (server clock),
   never on app install. Every later sign-in uses the stored initial start.
 - Login requires a verified Google ID token, the correct Web OAuth audience,

@@ -1,5 +1,6 @@
 # Only exposed on the VPS loopback interface. Terminate HTTPS at Nginx/Caddy.
-# Do not publish port 8765 to 0.0.0.0 on the public host.
+# Do not publish the trial API to 0.0.0.0 on the public host.
+name: prompt-overlay-trial
 services:
   trial:
     build: .
@@ -15,7 +16,7 @@ services:
       # Only localhost/Docker-private peers may forward a client IP.
       TRUST_PROXY: "internal"
     ports:
-      - "127.0.0.1:8765:8765"
+      - "127.0.0.1:${TRIAL_HOST_PORT:-18765}:8765"
     volumes:
       - trial-data:/var/lib/prompt-overlay
     read_only: true

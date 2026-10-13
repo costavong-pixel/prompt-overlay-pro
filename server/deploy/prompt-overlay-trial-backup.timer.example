@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Prompt Overlay trial database backup
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15m
+Unit=prompt-overlay-trial-backup.service
+
+[Install]
+WantedBy=timers.target

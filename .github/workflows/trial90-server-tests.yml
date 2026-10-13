@@ -45,11 +45,11 @@ jobs:
           cd server
           docker compose up --no-build --detach
           for i in $(seq 1 25); do
-            if curl -fsS --max-time 2 http://127.0.0.1:8765/health | grep -q '"ok":true'; then break; fi
+            if curl -fsS --max-time 2 http://127.0.0.1:18765/health | grep -q '"ok":true'; then break; fi
             sleep 1
           done
-          curl --fail --show-error --silent http://127.0.0.1:8765/health
-          status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8765/v1/entitlements)"
+          curl --fail --show-error --silent http://127.0.0.1:18765/health
+          status="$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18765/v1/entitlements)"
           test "$status" = 401
       - name: Cleanup trial container
         if: always()

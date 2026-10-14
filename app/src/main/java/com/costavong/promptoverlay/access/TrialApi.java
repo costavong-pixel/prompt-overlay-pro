@@ -25,6 +25,8 @@ public final class TrialApi {
             && BuildConfig.TRIAL_WEB_CLIENT_ID.endsWith(".apps.googleusercontent.com");
     }
 
+    /** Public connectivity check; never authenticates or activates a trial. */
+    public JSONObject health()throws IOException{return exchange("GET","/health",null,null);}
     public JSONObject nonce()throws IOException{return exchange("GET","/v1/auth/nonce",null,null);}
     public JSONObject signIn(String idToken,String nonce)throws IOException{
         JSONObject request=new JSONObject();

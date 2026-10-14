@@ -9,6 +9,8 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.os.Build;
+import android.view.WindowInsets;
 import android.os.CancellationSignal;
 import android.view.Gravity;
 import android.view.View;
@@ -69,8 +71,18 @@ public final class TrialAccountActivity extends Activity {
         getWindow().setStatusBarColor(BG);getWindow().setNavigationBarColor(BG);
         vault=new TrialSessionVault(this);
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(BG);scroll.setFillViewport(true);
+        if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(true);
+        if(Build.VERSION.SDK_INT>=35){
+            scroll.setOnApplyWindowInsetsListener((v,insets)->{
+                android.graphics.Insets bars=insets.getInsets(
+                    WindowInsets.Type.systemBars()|WindowInsets.Type.displayCutout());
+                v.setPadding(bars.left,bars.top,bars.right,bars.bottom);
+                return insets;
+            });
+        }
         LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(20),dp(18),dp(20),dp(24));scroll.addView(content);setContentView(scroll);
+        content.setPadding(dp(20),dp(18),dp(20),dp(30));scroll.addView(content);setContentView(scroll);
+        if(Build.VERSION.SDK_INT>=35)scroll.requestApplyInsets();
         add(content,button("Back",CARD,this::finish));
         add(content,text("90 DAYS FREE · ALL FEATURES",24,true));
         add(content,text("One 90-day trial includes every currently available Basic and Pro feature: teleprompter, editing, captions and export.",15,false));

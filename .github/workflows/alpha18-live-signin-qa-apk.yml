@@ -33,10 +33,10 @@ jobs:
           /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
       - name: Load optional stable QA signing certificate
         env:
-          QA_KEYSTORE_B64: \${{ secrets.PROMPT_OVERLAY_QA_KEYSTORE_B64 }}
-          QA_STORE_PASS: \${{ secrets.PROMPT_OVERLAY_QA_STORE_PASS }}
-          QA_KEY_ALIAS: \${{ secrets.PROMPT_OVERLAY_QA_KEY_ALIAS }}
-          QA_KEY_PASS: \${{ secrets.PROMPT_OVERLAY_QA_KEY_PASS }}
+          QA_KEYSTORE_B64: ${{ secrets.PROMPT_OVERLAY_QA_KEYSTORE_B64 }}
+          QA_STORE_PASS: ${{ secrets.PROMPT_OVERLAY_QA_STORE_PASS }}
+          QA_KEY_ALIAS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_ALIAS }}
+          QA_KEY_PASS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_PASS }}
         shell: bash
         run: |
           set -euo pipefail
@@ -55,9 +55,9 @@ jobs:
           fi
       - name: Run unit tests, lint, and build debug APK
         env:
-          PROMPT_OVERLAY_QA_STORE_PASS: \${{ secrets.PROMPT_OVERLAY_QA_STORE_PASS }}
-          PROMPT_OVERLAY_QA_KEY_ALIAS: \${{ secrets.PROMPT_OVERLAY_QA_KEY_ALIAS }}
-          PROMPT_OVERLAY_QA_KEY_PASS: \${{ secrets.PROMPT_OVERLAY_QA_KEY_PASS }}
+          PROMPT_OVERLAY_QA_STORE_PASS: ${{ secrets.PROMPT_OVERLAY_QA_STORE_PASS }}
+          PROMPT_OVERLAY_QA_KEY_ALIAS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_ALIAS }}
+          PROMPT_OVERLAY_QA_KEY_PASS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_PASS }}
         run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" --max-workers=2 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
       - name: Verify and label the QA APK
         shell: bash
@@ -94,7 +94,7 @@ jobs:
           if-no-files-found: error
       - name: Publish alpha18 APK as a GitHub prerelease
         env:
-          GH_TOKEN: \${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release create v2.0.0-pro-alpha18-live-signin-qa \
             deliverables/PromptOverlay-Pro-v2.0.0-alpha18-live-signin-qa.apk \

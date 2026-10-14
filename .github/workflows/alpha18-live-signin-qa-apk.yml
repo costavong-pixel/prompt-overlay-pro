@@ -1,0 +1,102 @@
+name: Prompt Overlay Pro alpha18 live Google Sign-In QA APK
+
+on:
+  push:
+    branches:
+      - feature/alpha18-live-google-signin-qa
+
+permissions:
+  contents: read
+
+# Prevent superseded commits from publishing the same prerelease tag.
+concurrency:
+  group: prompt-overlay-alpha18-live-signin-qa
+  cancel-in-progress: true
+
+jobs:
+  build-test-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out Alpha18 live sign-in candidate
+        uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Gradle 8.14.3
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.14.3
+      - name: Install Android API 36 and build tools
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "/usr/local/lib/android/sdk/platform-tools" >> "$GITHUB_PATH"
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Load optional stable QA signing certificate
+        env:
+          QA_KEYSTORE_B64: ${{ secrets.PROMPT_OVERLAY_QA_KEYSTORE_B64 }}
+          QA_STORE_PASS: ${{ secrets.PROMPT_OVERLAY_QA_STORE_PASS }}
+          QA_KEY_ALIAS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_ALIAS }}
+          QA_KEY_PASS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_PASS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$QA_KEYSTORE_B64" ]; then
+            if [ -z "$QA_STORE_PASS" ] || [ -z "$QA_KEY_ALIAS" ] || [ -z "$QA_KEY_PASS" ]; then
+              echo "FAIL: QA keystore set but QA signing secrets are incomplete" >&2
+              exit 1
+            fi
+            umask 077
+            printf '%s' "$QA_KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/prompt-overlay-qa.jks"
+            echo "PROMPT_OVERLAY_QA_KEYSTORE=$RUNNER_TEMP/prompt-overlay-qa.jks" >> "$GITHUB_ENV"
+            echo "QA_SIGNING_MODE=stable-private-qa-keystore" >> "$GITHUB_ENV"
+          else
+            echo "QA_SIGNING_MODE=ephemeral-debug-keystore" >> "$GITHUB_ENV"
+            echo "CAUTION: ephemeral QA APK signer; SHA-1 only valid for this exact artifact, future builds may need a second Android OAuth registration." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Run unit tests, lint, and build debug APK
+        env:
+          PROMPT_OVERLAY_QA_STORE_PASS: ${{ secrets.PROMPT_OVERLAY_QA_STORE_PASS }}
+          PROMPT_OVERLAY_QA_KEY_ALIAS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_ALIAS }}
+          PROMPT_OVERLAY_QA_KEY_PASS: ${{ secrets.PROMPT_OVERLAY_QA_KEY_PASS }}
+        run: gradle --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" --max-workers=2 :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+      - name: Verify and label the QA APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="app/build/outputs/apk/debug/app-debug.apk"
+          TOOLS="$ANDROID_HOME/build-tools/36.0.0"
+          "$TOOLS/apksigner" verify --verbose "$APK"
+          "$TOOLS/zipalign" -c -P 16 4 "$APK"
+          "$TOOLS/aapt" dump badging "$APK" | grep -E "package: name='com.costavong.promptoverlay.protest' versionCode='54' versionName='2.0.0-pro-alpha18-signin'"
+          mkdir -p deliverables
+          "$TOOLS/apksigner" verify --print-certs "$APK" \
+            | grep 'Signer #1 certificate SHA-1 digest' \
+            | tee deliverables/QA-ANDROID-SHA1.txt
+          cp "$APK" deliverables/PromptOverlay-Pro-v2.0.0-alpha18-live-signin-qa.apk
+          sha256sum deliverables/PromptOverlay-Pro-v2.0.0-alpha18-live-signin-qa.apk | tee deliverables/SHA256SUMS.txt
+          {
+            echo "Version: 2.0.0-pro-alpha18-signin (54)"
+            echo "Package: com.costavong.promptoverlay.protest"
+            echo "Signing: $QA_SIGNING_MODE (QA only, not production)"
+            echo "Google OAuth Web audience is configured (public Client ID)"
+            echo "HTTPS trial API: https://teleprompter-trail.barndai.com"
+            echo "Unit tests, lint, APK signature and 16 KiB ZIP alignment: verified"
+            cat deliverables/QA-ANDROID-SHA1.txt
+            cat deliverables/SHA256SUMS.txt
+          } | tee deliverables/BUILD-VALIDATION.txt
+          cat deliverables/BUILD-VALIDATION.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload QA APK and public SHA-1
+        uses: actions/upload-artifact@v4
+        with:
+          name: PromptOverlay-Pro-alpha18-live-signin-qa
+          path: deliverables/
+          retention-days: 7
+          if-no-files-found: error
+      # Release uploads are intentionally omitted: current GitHub Actions
+      # token cannot create releases (HTTP 403). The signed test APK and SHA-1
+      # are available as a verified build artifact, downloadable via Actions.

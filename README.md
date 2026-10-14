@@ -1,7 +1,7 @@
 # Prompt Overlay Pro
 
 Android floating teleprompter and local four-track video-editor prototype.
-Current development candidate: **2.0.0-pro-alpha16 (version code 52)**.
+Current Android QA candidate: **2.0.0-pro-alpha18 (version code 54)**.
 
 **Pricing and access decision:** One 90-day no-card, non-renewing free trial
 unlocks all Basic and current Pro features. Afterwards the customer can choose
@@ -10,12 +10,18 @@ Lifetime ($39.99 USD target). The 14-day promotional sale is **cancelled**.
 We will choose 500 people for Pro Lifetime based on substantive private
 feedback; public Google Play ratings are not rewarded.
 
-**Development status:** Alpha 16 updates offer wording and tests, but does
-not yet provide working Google sign-in without an OAuth Web Client ID and
-deployed HTTPS trial service. Google Play purchases, subscription validation,
-actual feature locks, refund handling and restoration are not implemented.
-The published paid Basic listing is unchanged. Do not convert the app to
-free in Google Play Console until payment and trial verification pass testing.
+**Development status:** Alpha18 connects the Android QA app to the
+owner-reported live HTTPS trial API and correct public Google Web OAuth audience.
+The owner must still register the **exact installed test APK package and
+SHA-1** as an Android OAuth client and test a real account. A successful
+sign-in will start the account's real 90-day clock. The Android app's QA
+package is now fixed, but future installs cannot upgrade each other unless
+a stable private QA signing key is configured. Google Play purchases,
+subscription validation, production feature locks, refunds and restoration
+are **not implemented**. The published paid Basic app is unchanged.
+
+See `docs/ALPHA18_GOOGLE_SIGNIN_QA.md` for exact OAuth fingerprint,
+secure QA signing setup and phone acceptance checks.
 
 ## Features
 
@@ -47,9 +53,10 @@ Install JDK 17 and Android SDK platform 36 / build-tools 36.0.0. Set
 ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
 
-The default test APK targets ARM64 and installs as **Prompt Overlay Pro Test**
-(`com.costavong.promptoverlay.proalpha16`) beside the published Basic app. It uses
-the local Android debug signing identity; no keystore is included here.
+The default ARM64 QA APK installs as **Prompt Overlay Pro QA**
+(`com.costavong.promptoverlay.protest`) beside the published Basic app.
+GitHub Actions optionally uses a private stable QA signing key; without it
+the runner's debug key is ephemeral. The source contains no signing key.
 
 For an x86_64 emulator:
 

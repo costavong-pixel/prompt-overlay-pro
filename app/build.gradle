@@ -15,7 +15,7 @@ android {
 
     // Public identifiers, not secrets. The test binary remains disabled until
     // the real OAuth Web client and backend HTTPS endpoint are configured.
-    def trialOauthId = providers.gradleProperty("trialGoogleWebClientId").getOrElse("")
+    def trialOauthId = providers.gradleProperty("trialGoogleWebClientId").getOrElse("331034587847-tmnrmmr51la0q4ng5g2bllu50ujr9ufp.apps.googleusercontent.com")
     def trialApiUrl = providers.gradleProperty("trialApiBaseUrl").getOrElse("https://teleprompter-trail.barndai.com")
     if (trialOauthId && !(trialOauthId ==~ /[A-Za-z0-9_-]+\.apps\.googleusercontent\.com/)) {
         throw new GradleException("Invalid trialGoogleWebClientId")
@@ -29,8 +29,8 @@ android {
         minSdk 26
         targetSdk 36
         // Trial identity prototype only. Production still excludes Pro editor.
-        versionCode 53
-        versionName "2.0.0-pro-alpha17-plans"
+        versionCode 54
+        versionName "2.0.0-pro-alpha18-signin"
         buildConfigField "String", "TRIAL_WEB_CLIENT_ID", "\"${trialOauthId}\""
         buildConfigField "String", "TRIAL_API_URL", "\"${trialApiUrl}\""
         buildConfigField "boolean", "PRO_TEST", "false"
@@ -46,6 +46,26 @@ android {
     }
 
     signingConfigs {
+        // Optional stable QA signer. Set all variables through local private
+        // environment or GitHub Actions secrets, never commit a keystore.
+        qa {
+            def qaPath = System.getenv("PROMPT_OVERLAY_QA_KEYSTORE")
+            if (qaPath != null && !qaPath.trim().isEmpty()) {
+                def qaStorePass = System.getenv("PROMPT_OVERLAY_QA_STORE_PASS")
+                def qaAlias = System.getenv("PROMPT_OVERLAY_QA_KEY_ALIAS")
+                def qaKeyPass = System.getenv("PROMPT_OVERLAY_QA_KEY_PASS")
+                if (!qaStorePass || !qaAlias || !qaKeyPass) {
+                    throw new GradleException("QA keystore selected but required private signing settings are missing")
+                }
+                if (!file(qaPath).isFile()) {
+                    throw new GradleException("QA keystore file does not exist")
+                }
+                storeFile file(qaPath)
+                storePassword qaStorePass
+                keyAlias qaAlias
+                keyPassword qaKeyPass
+            }
+        }
         release {
             def uploadKeystore = System.getenv("PROMPT_OVERLAY_UPLOAD_KEYSTORE")
             if (uploadKeystore != null && !uploadKeystore.trim().isEmpty()) {
@@ -59,11 +79,18 @@ android {
 
     buildTypes {
         debug {
+            // A stable QA signature allows one permanent Google OAuth Android
+            // client and in-place upgrades of com.costavong.promptoverlay.protest.
+            // Without QA secrets, CI uses a disposable debug signer; the
+            // certificate fingerprint is valid ONLY for that exact APK.
+            if (System.getenv("PROMPT_OVERLAY_QA_KEYSTORE")) {
+                signingConfig signingConfigs.qa
+            }
             // Lets this test app live beside the Play-installed app on the
             // same phone, with its own overlay permission and local settings.
-            applicationIdSuffix ".proalpha17"
+            applicationIdSuffix ".protest"
             buildConfigField "boolean", "PRO_TEST", "true"
-            resValue "string", "app_name", "Prompt Overlay Pro Test"
+            resValue "string", "app_name", "Prompt Overlay Pro QA"
             manifestPlaceholders = [proEnabled: "true"]
             // Only the side-by-side device test is limited to Samsung's ABI.
             ndk {

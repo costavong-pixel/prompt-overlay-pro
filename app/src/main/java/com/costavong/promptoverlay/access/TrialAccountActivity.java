@@ -148,7 +148,7 @@ public final class TrialAccountActivity extends Activity {
     private interface Result{void done(JSONObject data);}
     private String registrationDetails(){
         String sha1=QaCertificateInfo.installedSha1(this);
-        return "Package name: "+getPackageName()+"\\n"
+        return "Package name: "+getPackageName()+"\n"
             +"APK signing SHA-1: "+(sha1.isEmpty()?"Unavailable":sha1);
     }
 

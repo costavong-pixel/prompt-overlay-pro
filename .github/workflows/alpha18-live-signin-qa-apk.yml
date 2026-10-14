@@ -6,7 +6,7 @@ on:
       - feature/alpha18-live-google-signin-qa
 
 permissions:
-  contents: write
+  contents: read
 
 # Prevent superseded commits from publishing the same prerelease tag.
 concurrency:
@@ -97,23 +97,6 @@ jobs:
           path: deliverables/
           retention-days: 7
           if-no-files-found: error
-      - name: Publish alpha18 APK as a GitHub prerelease
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          git fetch origin feature/alpha18-live-google-signin-qa --depth=1
-          branch_head="$(git rev-parse FETCH_HEAD)"
-          if [ "$branch_head" != "$GITHUB_SHA" ]; then
-            echo "Skip prerelease from superseded commit $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          gh release create v2.0.0-pro-alpha18-signed-qa-final \
-            deliverables/PromptOverlay-Pro-v2.0.0-alpha18-live-signin-qa.apk \
-            deliverables/BUILD-VALIDATION.txt \
-            deliverables/SHA256SUMS.txt \
-            deliverables/QA-ANDROID-SHA1.txt \
-            --target "$GITHUB_SHA" \
-            --title "Prompt Overlay Pro alpha18 live sign-in QA (test APK)" \
-            --notes "QA APK with the real trial-server HTTPS hostname and public OAuth Web client, stable com.costavong.promptoverlay.protest package ID, and public signing SHA-1 fingerprint for Android OAuth registration. Google sign-in can activate a real 90-day server trial only after this certificate/package is registered. If no private stable QA keystore secrets were supplied, this release uses a disposable Android debug key; later builds will differ. No payments, production feature gates or Google Play changes. Test only." \
-            --prerelease
+      # Release uploads are intentionally omitted: current GitHub Actions
+      # token cannot create releases (HTTP 403). The signed test APK and SHA-1
+      # are available as a verified build artifact, downloadable via Actions.

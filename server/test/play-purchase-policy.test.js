@@ -107,6 +107,8 @@ test('monthly validation rejects malformed items and acknowledgments',()=>{
 test('nothing client-only can bypass server receipt verification',()=>{
   assert.equal(mayGrantFromGoogleReceipt(null),false);
   assert.equal(mayGrantFromGoogleReceipt({approved:true,kind:'other'}),false);
+  assert.equal(mayGrantFromGoogleReceipt({approved:true,kind:'lifetime',productId:'pro_lifetime'}),false);
+  assert.equal(mayGrantFromGoogleReceipt({approved:true,kind:'monthly',expiresAtMs:NOW+86400000}),false);
   assert.equal(mayGrantFromGoogleReceipt({approved:false,kind:'monthly'}),false);
   assert.equal(evaluateOneTime({isPurchased:true,productId:'pro_lifetime'},'pro_lifetime',bound).approved,false);
   assert.equal(evaluateMonthly({subscriptionState:'SUBSCRIPTION_STATE_ACTIVE'},NOW,bound).approved,false);

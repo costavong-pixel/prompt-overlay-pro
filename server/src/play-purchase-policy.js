@@ -1,3 +1,5 @@
+import {timingSafeEqual} from 'node:crypto';
+
 /**
  * Purchase decision engine for responses fetched BY THE SERVER from Google's
  * authenticated Android Publisher API. Never evaluate client-supplied JSON.
@@ -26,8 +28,12 @@ export function expectedObfuscatedAccountId(accountId,hashFn){
 
 function reject(reason){return {approved:false,reason};}
 function isExpectedBoundAccount(raw,expected){
-  return typeof expected==='string'&&expected.length===64&&
-    typeof raw==='string'&&raw===expected;
+  // Both values are fixed-width hex SHA-256 hashes. Avoid shortcuts based on
+  // the first mismatching byte in an authenticated purchase-claim comparison.
+  if(typeof expected!=='string'||typeof raw!=='string'||
+      !/^[a-f0-9]{64}$/.test(expected)||!/^[a-f0-9]{64}$/.test(raw))
+    return false;
+  return timingSafeEqual(Buffer.from(raw,'hex'),Buffer.from(expected,'hex'));
 }
 
 /**

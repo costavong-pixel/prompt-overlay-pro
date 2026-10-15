@@ -1,7 +1,7 @@
 # Prompt Overlay Pro
 
 Android floating teleprompter and local four-track video-editor prototype.
-Current Android QA candidate: **2.0.0-pro-alpha18 (version code 54)**.
+Current Android QA candidate: **2.0.0-pro-alpha19 (version code 55)**.
 
 **Pricing and access decision:** One 90-day no-card, non-renewing free trial
 unlocks all Basic and current Pro features. Afterwards the customer can choose
@@ -20,8 +20,10 @@ a stable private QA signing key is configured. Google Play purchases,
 subscription validation, production feature locks, refunds and restoration
 are **not implemented**. The published paid Basic app is unchanged.
 
-See `docs/ALPHA18_GOOGLE_SIGNIN_QA.md` for exact OAuth fingerprint,
-secure QA signing setup and phone acceptance checks.
+See `docs/ALPHA18_GOOGLE_SIGNIN_QA.md` for Google sign-in and OAuth; see
+`docs/ALPHA19_PLAY_BILLING_PREFLIGHT.md` for the new read-only Play ownership
+check and server-side receipt validation policy, and for the important
+safe side-by-side Alpha19 package when a stable QA signer is unavailable.
 
 ## Features
 
@@ -53,10 +55,16 @@ Install JDK 17 and Android SDK platform 36 / build-tools 36.0.0. Set
 ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
 
-The default ARM64 QA APK installs as **Prompt Overlay Pro QA**
-(`com.costavong.promptoverlay.protest`) beside the published Basic app.
-GitHub Actions optionally uses a private stable QA signing key; without it
-the runner's debug key is ephemeral. The source contains no signing key.
+The default ARM64 Alpha19 build without a stable QA keystore installs
+as **Prompt Overlay A19 Preview**
+(`com.costavong.promptoverlay.proalpha19`), beside BOTH the published Basic
+app and your signed-in Alpha18 Pro QA test. This prevents Android from forcing
+an uninstall when ephemeral debug signing keys differ. The temporary Alpha19
+package does not have a Google Android OAuth registration, so its sign-in
+button is disabled; use Alpha18 for your existing live 90-day trial.
+When protected permanent QA signing secrets are set, the build instead uses
+`com.costavong.promptoverlay.protest` for subsequent QA releases.
+No keystore is stored in this repository.
 
 For an x86_64 emulator:
 

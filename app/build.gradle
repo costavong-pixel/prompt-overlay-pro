@@ -29,8 +29,8 @@ android {
         minSdk 26
         targetSdk 36
         // Trial identity prototype only. Production still excludes Pro editor.
-        versionCode 54
-        versionName "2.0.0-pro-alpha18-signin"
+        versionCode 55
+        versionName "2.0.0-pro-alpha19-restore"
         buildConfigField "String", "TRIAL_WEB_CLIENT_ID", "\"${trialOauthId}\""
         buildConfigField "String", "TRIAL_API_URL", "\"${trialApiUrl}\""
         buildConfigField "boolean", "PRO_TEST", "false"
@@ -79,18 +79,20 @@ android {
 
     buildTypes {
         debug {
-            // A stable QA signature allows one permanent Google OAuth Android
-            // client and in-place upgrades of com.costavong.promptoverlay.protest.
-            // Without QA secrets, CI uses a disposable debug signer; the
-            // certificate fingerprint is valid ONLY for that exact APK.
+            // Stable QA signing preserves the permanent QA package and
+            // lets later builds upgrade the same installation.
+            // Without a stable signer, use a *different* isolated temporary
+            // package rather than forcing the owner to uninstall Alpha18 and
+            // lose device-local projects/scripts.
             if (System.getenv("PROMPT_OVERLAY_QA_KEYSTORE")) {
                 signingConfig signingConfigs.qa
+                applicationIdSuffix ".protest"
+                resValue "string", "app_name", "Prompt Overlay Pro QA"
+            } else {
+                applicationIdSuffix ".proalpha19"
+                resValue "string", "app_name", "Prompt Overlay A19 Preview"
             }
-            // Lets this test app live beside the Play-installed app on the
-            // same phone, with its own overlay permission and local settings.
-            applicationIdSuffix ".protest"
             buildConfigField "boolean", "PRO_TEST", "true"
-            resValue "string", "app_name", "Prompt Overlay Pro QA"
             manifestPlaceholders = [proEnabled: "true"]
             // Only the side-by-side device test is limited to Samsung's ABI.
             ndk {

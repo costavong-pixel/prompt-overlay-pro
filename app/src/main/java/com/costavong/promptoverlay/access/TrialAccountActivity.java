@@ -47,6 +47,11 @@ public final class TrialAccountActivity extends Activity {
     private TextView diagnostic;
     private boolean busy;
     private boolean signInPending;
+
+    private boolean isIsolatedBillingPreview(){
+        return BuildConfig.DEBUG &&
+            BuildConfig.APPLICATION_ID.endsWith(".proalpha19");
+    }
     private String session;
     private int dp(float v){return Math.round(v*getResources().getDisplayMetrics().density);}
     private GradientDrawable shape(int color){
@@ -121,7 +126,9 @@ public final class TrialAccountActivity extends Activity {
         add(content,text("Target USD prices only; Google Play will show actual local prices when checkout becomes available.",12,false));
         add(content,text("TEST BUILD: this screen cannot activate a real trial until the owner connects Google OAuth and the HTTPS trial service. Purchases and feature locks are not enabled. No payment is collected.",12,false));
         session=vault.restore();
-        if(!TrialApi.configured()){
+        if(isIsolatedBillingPreview()){
+            showStatus("Alpha19 is a separate Billing preview so your signed-in Alpha18 stays installed. Use Alpha18 for Google Sign-In and your real 90-day trial. No purchase is possible here.");
+        }else if(!TrialApi.configured()){
             showStatus("Google sign-in is not configured yet. The owner must connect a verified HTTPS trial server and OAuth Web client.");
         }else if(session!=null)refreshEntitlements();
         else showStatus("No trial activated yet. Sign in to start.");
@@ -130,8 +137,8 @@ public final class TrialAccountActivity extends Activity {
     private void showStatus(String message){status.setText(message);}
     private void controls(){
         boolean configured=TrialApi.configured();
-        signIn.setEnabled(configured&&!busy&&!signInPending);
-        refresh.setEnabled(configured&&!busy&&session!=null);
+        signIn.setEnabled(configured&&!busy&&!signInPending&&!isIsolatedBillingPreview());
+        refresh.setEnabled(configured&&!busy&&session!=null&&!isIsolatedBillingPreview());
         signOut.setEnabled(!busy&&session!=null);
     }
     private void runBackground(Work work,Result response){

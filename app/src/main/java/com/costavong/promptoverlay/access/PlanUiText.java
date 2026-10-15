@@ -7,6 +7,15 @@ import com.costavong.promptoverlay.AppLanguage;
 public final class PlanUiText {
     private static final String[][] WORDS={
         {"Back","Atrás","Retour","رجوع"},
+        {"Side-by-side preview only. Your active 90-day trial remains in Alpha18.","Vista previa separada. Tu prueba de 90 días sigue activa en Alpha18.","Aperçu installé séparément. Votre essai de 90 jours reste actif dans Alpha18.","معاينة منفصلة فقط. تبقى تجربتك النشطة لمدة ٩٠ يومًا في Alpha18."},
+        {"Check Play purchases (QA only)","Comprobar compras de Play (solo prueba)","Vérifier les achats Play (test uniquement)","التحقق من مشتريات Play (للاختبار فقط)"},
+        {"No purchases have been checked. Real purchase restoration is not enabled.","Aún no se han comprobado compras. La restauración real no está habilitada.","Aucun achat vérifié. La restauration des achats n’est pas activée.","لم يتم التحقق من المشتريات. استعادة المشتريات الحقيقية غير مفعّلة."},
+        {"Checking Google Play purchases for this test app…","Comprobando compras de Google Play para esta app de prueba…","Vérification des achats Google Play de cette application de test…","جارٍ التحقق من مشتريات Google Play لهذا التطبيق التجريبي…"},
+        {"Google Play purchases are unavailable for this QA package.","Las compras de Google Play no están disponibles para este paquete de prueba.","Les achats Google Play ne sont pas disponibles pour cette version de test.","مشتريات Google Play غير متاحة لحزمة الاختبار هذه."},
+        {"Google Play reported unverified purchases: ","Google Play notificó compras sin verificar: ","Google Play indique des achats non vérifiés : ","أبلغ Google Play عن مشتريات غير موثّقة: "},
+        {"purchased, ","compradas، ","achetés, ","تم شراؤها، "},
+        {"pending. No paid access was unlocked.","pendientes. No se ha desbloqueado ningún acceso de pago.","en attente. Aucun accès payant n’a été débloqué.","قيد الانتظار. لم يتم فتح أي وصول مدفوع."},
+        {"No Play purchases found for this test package. No paid access was unlocked.","No se encontraron compras de Play para este paquete de prueba. No se desbloqueó el acceso de pago.","Aucun achat Play trouvé pour cette version de test. Aucun accès payant n’a été débloqué.","لم يتم العثور على مشتريات Play لحزمة الاختبار هذه. لم يتم فتح أي وصول مدفوع."},
         {"Your access & plans","Tu acceso y planes","Votre accès et vos offres","وصولك وخططك"},
         {"90 DAYS FREE","90 DÍAS GRATIS","90 JOURS GRATUITS","٩٠ يومًا مجانًا"},
         {"Try every current feature for 90 days — teleprompter, video editor, captions and export.","Prueba todas las funciones actuales durante 90 días: teleprompter, editor de vídeo, subtítulos y exportación.","Essayez toutes les fonctionnalités actuelles pendant 90 jours : téléprompteur, montage vidéo, sous-titres et exportation.","جرّب جميع الميزات الحالية لمدة ٩٠ يومًا: الملقّن وتحرير الفيديو والترجمة النصية والتصدير."},
@@ -49,6 +58,7 @@ public final class PlanUiText {
         {"Learn more","Más información","En savoir plus","اعرف المزيد"},
         {"days left","días restantes","jours restants","أيام متبقية"},
     };
+    // The purchase-check button never grants ownership; responses require backend verification.
     private PlanUiText(){}
     public static String t(Context context,String english){
         if(english==null)return "";

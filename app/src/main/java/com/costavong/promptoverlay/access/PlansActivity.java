@@ -17,6 +17,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.costavong.promptoverlay.AppLanguage;
+import com.costavong.promptoverlay.BuildConfig;
 import com.costavong.promptoverlay.pro.ProFeedbackActivity;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +43,8 @@ public final class PlansActivity extends Activity {
     private final ExecutorService background=Executors.newSingleThreadExecutor();
     private final Map<String,TextView> priceLabels=new HashMap<>();
     private PlayPriceCatalog playCatalog;
-    private TextView accessLabel, catalogLabel;
+    private PlayPurchaseRestoreProbe restoreProbe;
+    private TextView accessLabel, catalogLabel, restoreStatus;
     private boolean stopped;
 
     private int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
@@ -146,6 +148,12 @@ public final class PlansActivity extends Activity {
             add(root,planCard(entry),11);
         }
 
+        add(root,action("Check Play purchases (QA only)",CARD,
+            this::checkPlayPurchases),7);
+        restoreStatus=label("No purchases have been checked. Real purchase restoration is not enabled.",
+            12,TEAL,false);
+        add(root,restoreStatus,13);
+
         TextView pricesHelp=label(
             "US target prices shown until live Google Play offers become available. Checkout is disabled.",
             12,MUTED,false);
@@ -184,6 +192,34 @@ public final class PlansActivity extends Activity {
             });
         }catch(RuntimeException e){
             catalogLabel.setText(t("Google Play pricing is not available for this test package."));
+        }
+    }
+
+    private void checkPlayPurchases(){
+        if(restoreProbe!=null){
+            restoreProbe.close();
+            restoreProbe=null;
+        }
+        restoreStatus.setText(t("Checking Google Play purchases for this test app…"));
+        restoreProbe=new PlayPurchaseRestoreProbe(this);
+        try{
+            restoreProbe.check(result->{
+                if(result.state!=PlayPurchaseRestoreProbe.State.QUERIED){
+                    restoreStatus.setText(t(
+                        "Google Play purchases are unavailable for this QA package."));
+                }else if(result.purchased>0||result.pending>0){
+                    restoreStatus.setText(
+                        t("Google Play reported unverified purchases: ")+
+                        result.purchased+" "+t("purchased, ")+result.pending+
+                        " "+t("pending. No paid access was unlocked."));
+                }else{
+                    restoreStatus.setText(t(
+                        "No Play purchases found for this test package. No paid access was unlocked."));
+                }
+            });
+        }catch(RuntimeException failure){
+            restoreStatus.setText(t(
+                "Google Play purchases are unavailable for this QA package."));
         }
     }
 
@@ -252,6 +288,11 @@ public final class PlansActivity extends Activity {
     }
     private void updateAccountStatus(){
         if(accessLabel==null)return;
+        if(BuildConfig.DEBUG&&BuildConfig.APPLICATION_ID.endsWith(".proalpha19")){
+            accessLabel.setText(t(
+                "Side-by-side preview only. Your active 90-day trial remains in Alpha18."));
+            return;
+        }
         if(!TrialApi.configured()){
             accessLabel.setText(t(
                 "Account service not connected yet. Trial activation is unavailable in this test build."));
@@ -297,6 +338,7 @@ public final class PlansActivity extends Activity {
     @Override protected void onDestroy(){
         stopped=true;
         if(playCatalog!=null)playCatalog.close();
+        if(restoreProbe!=null)restoreProbe.close();
         background.shutdownNow();
         super.onDestroy();
     }

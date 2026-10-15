@@ -17,6 +17,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.costavong.promptoverlay.AppLanguage;
+import com.costavong.promptoverlay.BuildConfig;
 import com.costavong.promptoverlay.pro.ProFeedbackActivity;
 import java.util.HashMap;
 import java.util.Map;
@@ -287,6 +288,11 @@ public final class PlansActivity extends Activity {
     }
     private void updateAccountStatus(){
         if(accessLabel==null)return;
+        if(BuildConfig.DEBUG&&BuildConfig.APPLICATION_ID.endsWith(".proalpha19")){
+            accessLabel.setText(t(
+                "Side-by-side preview only. Your active 90-day trial remains in Alpha18."));
+            return;
+        }
         if(!TrialApi.configured()){
             accessLabel.setText(t(
                 "Account service not connected yet. Trial activation is unavailable in this test build."));

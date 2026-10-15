@@ -89,7 +89,7 @@ test('subscription on hold, paused, expired, pending or wrong account always den
     assert.equal(result.approved,false,state);
     assert.equal(result.reason,'SUBSCRIPTION_NOT_ENTITLED');
   }
-  assert.equal(evaluateMonthly(monthly(undefined,otherBound),NOW,bound).reason,'SUBSCRIPTION_NOT_ENTITLED');
+  assert.equal(evaluateMonthly(monthly('SUBSCRIPTION_STATE_UNSPECIFIED',otherBound),NOW,bound).reason,'SUBSCRIPTION_NOT_ENTITLED');
   assert.equal(evaluateMonthly(monthly('SUBSCRIPTION_STATE_ACTIVE',otherBound),NOW,bound).reason,'ACCOUNT_MISMATCH');
   assert.equal(evaluateMonthly(monthly('SUBSCRIPTION_STATE_ACTIVE',null),NOW,bound).reason,'ACCOUNT_MISMATCH');
 });

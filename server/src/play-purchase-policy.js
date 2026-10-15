@@ -8,6 +8,11 @@ import {timingSafeEqual} from 'node:crypto';
  * purchase notification handling, purchase binding, and acknowledgment are
  * reviewed, the existing /v1/purchases/verify endpoint stays HTTP 503.
  */
+const SERVER_CHECKED_DECISION=Symbol('server-verified-google-play-decision');
+const approve=(properties)=>Object.freeze({
+  ...properties,approved:true,[SERVER_CHECKED_DECISION]:true
+});
+
 const PRODUCTS=Object.freeze({
   basic_lifetime:'inapp',
   pro_lifetime:'inapp',
@@ -56,10 +61,10 @@ export function evaluateOneTime(response,productId,obfuscatedAccountId){
     return reject('UNKNOWN_ACKNOWLEDGEMENT_STATE');
   if(rows[0]?.productOfferDetails?.consumptionState==='CONSUMPTION_STATE_CONSUMED')
     return reject('CONSUMED_PURCHASE');
-  return {
-    approved:true,productId,kind:'lifetime',
+  return approve({
+    productId,kind:'lifetime',
     needsAcknowledgement:ack==='ACKNOWLEDGEMENT_STATE_PENDING'
-  };
+  });
 }
 
 const ENTITLED_SUBSCRIPTION_STATES=new Set([
@@ -92,11 +97,11 @@ export function evaluateMonthly(response,nowMs,obfuscatedAccountId){
   const ack=response.acknowledgementState;
   if(!['ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED','ACKNOWLEDGEMENT_STATE_PENDING'].includes(ack))
     return reject('UNKNOWN_ACKNOWLEDGEMENT_STATE');
-  return {
-    approved:true,productId:'pro_monthly',kind:'monthly',
+  return approve({
+    productId:'pro_monthly',kind:'monthly',
     expiresAtMs:expires,
     needsAcknowledgement:ack==='ACKNOWLEDGEMENT_STATE_PENDING'
-  };
+  });
 }
 
 /**
@@ -104,6 +109,8 @@ export function evaluateMonthly(response,nowMs,obfuscatedAccountId){
  * purchase queried locally on the phone never suffices to grant access.
  */
 export function mayGrantFromGoogleReceipt(verifiedServerDecision){
-  return verifiedServerDecision!=null&&verifiedServerDecision.approved===true
-    &&['lifetime','monthly'].includes(verifiedServerDecision.kind);
+  return verifiedServerDecision!=null&&
+    verifiedServerDecision[SERVER_CHECKED_DECISION]===true&&
+    verifiedServerDecision.approved===true&&
+    ['lifetime','monthly'].includes(verifiedServerDecision.kind);
 }

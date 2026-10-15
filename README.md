@@ -1,7 +1,7 @@
 # Prompt Overlay Pro
 
 Android floating teleprompter and local four-track video-editor prototype.
-Current Android QA candidate: **2.0.0-pro-alpha18 (version code 54)**.
+Current Android QA candidate: **2.0.0-pro-alpha19 (version code 55)**.
 
 **Pricing and access decision:** One 90-day no-card, non-renewing free trial
 unlocks all Basic and current Pro features. Afterwards the customer can choose
@@ -20,8 +20,10 @@ a stable private QA signing key is configured. Google Play purchases,
 subscription validation, production feature locks, refunds and restoration
 are **not implemented**. The published paid Basic app is unchanged.
 
-See `docs/ALPHA18_GOOGLE_SIGNIN_QA.md` for exact OAuth fingerprint,
-secure QA signing setup and phone acceptance checks.
+See `docs/ALPHA18_GOOGLE_SIGNIN_QA.md` for Google sign-in and OAuth; see
+`docs/ALPHA19_PLAY_BILLING_PREFLIGHT.md` for the new read-only Play ownership
+check and server-side receipt validation policy, and for the important
+signing-certificate mismatch when installing new QA APKs.
 
 ## Features
 

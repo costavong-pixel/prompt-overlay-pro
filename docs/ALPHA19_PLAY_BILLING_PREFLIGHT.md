@@ -63,29 +63,43 @@ To test real transactions safely, owner must:
 currently **deployed pinned VPS** the purchase-verification route still returns
 HTTP 503 `BILLING_NOT_ENABLED`. Changes in this branch are NOT deployed.
 
-## QA-signing concern — IMPORTANT before installing Alpha19
+## QA signing — Alpha19 installs safely beside Alpha18
 
-Alpha18 was built on a GitHub Actions runner with an ephemeral debug signing
-key. Alpha19's runner normally has a *different* SHA-1 even though both
-use `com.costavong.promptoverlay.protest`. An Android APK with a different
-signing certificate **cannot be installed as an upgrade** over Alpha18.
-Uninstalling Alpha18 to install a differently-signed Alpha19 **removes
-local QA app scripts, projects and settings** unless exported first.
-The real server's initial Google account trial date persists and does not
-restart on reinstall.
+Alpha18 was built with an ephemeral GitHub runner debug certificate.
+Alpha19 normally gets a **different** SHA-1. Android cannot upgrade an
+installed app with a different signing certificate.
 
-Before repeated Alpha APK updates, set up a permanent **nonproduction QA
+**Safety fix included in Alpha19:**
+
+- Without a permanent QA signing key, Alpha19 automatically builds as
+  `com.costavong.promptoverlay.proalpha19` with the label
+  **Prompt Overlay A19 Preview**, so it installs **beside**, not over,
+  the existing signed-in Alpha18 app. No uninstall, loss of local projects
+  or restart of the server 90-day trial is necessary.
+- The side-by-side purchase preview deliberately DISABLES Google Sign-In
+  because this temporary `.proalpha19` package is not registered as an
+  Android OAuth client. Continue Google account/90-day testing in the
+  existing Alpha18 `com.costavong.promptoverlay.protest`.
+- If private stable QA signing secrets are later available, this same
+  branch builds with `com.costavong.promptoverlay.protest` instead,
+  compatible with **future** signed builds using that stable certificate,
+  but NOT as an in-place update for the earlier ephemeral-signed Alpha18.
+  Preserve/export any Alpha18 local scripts/projects before uninstalling.
+
+The real server's initial Google account trial date stays intact across
+reinstalls; local app files/settings are separate.
+
+To stop future signing changes, create a dedicated stable **nonproduction QA
 signing key** owned by the business:
-- Have a trusted local Codex/terminal session generate a dedicated JKS key
-  *privately* and store a protected offline backup.
-- Populate four existing GitHub Actions repository secrets:
+
+- Have a trusted local Codex/terminal session generate a JKS key privately,
+  store a protected backup, and set four GitHub Actions secrets:
   `PROMPT_OVERLAY_QA_KEYSTORE_B64`, `PROMPT_OVERLAY_QA_STORE_PASS`,
   `PROMPT_OVERLAY_QA_KEY_ALIAS`, `PROMPT_OVERLAY_QA_KEY_PASS`.
-- Rebuild QA and register the NEW, stable SHA-1 in Google Cloud for
-  `com.costavong.promptoverlay.protest`; use it for all subsequent updates.
-- Do not expose any keystore/key/password in GitHub PR, chat or logs.
-- If you must uninstall the previous ephemeral-signed QA APK, export your
-  projects/scripts first. The server-side trial is not reset.
+- Register the NEW stable SHA-1 in Google Cloud for the permanent Android QA
+  client `com.costavong.promptoverlay.protest`.
+- Do not expose any keystore/key/password in PR, chat, GitHub commits, or logs,
+  and do not reuse production Play signing identities.
 
 ## CI requirements
 

@@ -72,7 +72,12 @@ jobs:
           TOOLS="$ANDROID_HOME/build-tools/36.0.0"
           "$TOOLS/apksigner" verify --verbose "$APK"
           "$TOOLS/zipalign" -c -P 16 4 "$APK"
-          "$TOOLS/aapt" dump badging "$APK" | grep -E "package: name='com.costavong.promptoverlay.protest' versionCode='55' versionName='2.0.0-pro-alpha19-restore'"
+          if [ "$QA_SIGNING_MODE" = "stable-private-qa-keystore" ]; then
+            EXPECTED_PACKAGE="com.costavong.promptoverlay.protest"
+          else
+            EXPECTED_PACKAGE="com.costavong.promptoverlay.proalpha19"
+          fi
+          "$TOOLS/aapt" dump badging "$APK" | grep -F "package: name='$EXPECTED_PACKAGE' versionCode='55' versionName='2.0.0-pro-alpha19-restore'"
           mkdir -p deliverables
           "$TOOLS/apksigner" verify --print-certs "$APK" \
             | grep 'Signer #1 certificate SHA-1 digest' \
@@ -81,7 +86,11 @@ jobs:
           sha256sum deliverables/PromptOverlay-Pro-v2.0.0-alpha19-restore-preflight.apk | tee deliverables/SHA256SUMS.txt
           {
             echo "Version: 2.0.0-pro-alpha19-restore (55)"
-            echo "Package: com.costavong.promptoverlay.protest"
+            echo "Package: $EXPECTED_PACKAGE"
+            if [ "$QA_SIGNING_MODE" = "ephemeral-debug-keystore" ]; then
+              echo "Installed independently beside Alpha18: no uninstall or data loss needed."
+              echo "Google Sign-In disabled in this separate purchase preview; use Alpha18 for trial."
+            fi
             echo "Signing: $QA_SIGNING_MODE (QA only, not production)"
             echo "Google OAuth Web audience is configured (public Client ID)"
             echo "HTTPS trial API: https://teleprompter-trail.barndai.com"

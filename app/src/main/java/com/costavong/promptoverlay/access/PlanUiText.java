@@ -7,6 +7,7 @@ import com.costavong.promptoverlay.AppLanguage;
 public final class PlanUiText {
     private static final String[][] WORDS={
         {"Back","Atrás","Retour","رجوع"},
+        {"Side-by-side preview only. Your active 90-day trial remains in Alpha18.","Vista previa separada. Tu prueba de 90 días sigue activa en Alpha18.","Aperçu installé séparément. Votre essai de 90 jours reste actif dans Alpha18.","معاينة منفصلة فقط. تبقى تجربتك النشطة لمدة ٩٠ يومًا في Alpha18."},
         {"Check Play purchases (QA only)","Comprobar compras de Play (solo prueba)","Vérifier les achats Play (test uniquement)","التحقق من مشتريات Play (للاختبار فقط)"},
         {"No purchases have been checked. Real purchase restoration is not enabled.","Aún no se han comprobado compras. La restauración real no está habilitada.","Aucun achat vérifié. La restauration des achats n’est pas activée.","لم يتم التحقق من المشتريات. استعادة المشتريات الحقيقية غير مفعّلة."},
         {"Checking Google Play purchases for this test app…","Comprobando compras de Google Play para esta app de prueba…","Vérification des achats Google Play de cette application de test…","جارٍ التحقق من مشتريات Google Play لهذا التطبيق التجريبي…"},

@@ -85,7 +85,7 @@ jobs:
           cp "$APK" deliverables/PromptOverlay-Pro-v2.0.0-alpha21-billing-foundation.apk
           sha256sum deliverables/PromptOverlay-Pro-v2.0.0-alpha21-billing-foundation.apk | tee deliverables/SHA256SUMS.txt
           {
-            echo "Version: 2.0.0-pro-alpha21-billing (56)"
+            echo "Version: 2.0.0-pro-alpha21-billing (57)"
             echo "Package: $EXPECTED_PACKAGE"
             if [ "$QA_SIGNING_MODE" = "ephemeral-debug-keystore" ]; then
               echo "Installed independently beside Alpha18: no uninstall or data loss needed."

@@ -227,7 +227,8 @@ public final class PlansActivity extends Activity {
         LinearLayout card=column();
         card.setBackground(bg(CARD,18));
         card.setPadding(dp(16),dp(16),dp(16),dp(15));
-        card.setContentDescription(t(planTitle(entry))+" · "+entry.targetUsd);
+        card.setContentDescription(t(planTitle(entry))+" · "+entry.targetUsd+" · "+
+            t(PlanCardCopy.cadenceLabel(entry))+" · "+t(planSummary(entry)));
         card.setClickable(true);
         card.setFocusable(true);
         card.setOnClickListener(v->showDetails(entry));

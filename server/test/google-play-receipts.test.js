@@ -52,9 +52,9 @@ test('server acknowledgements use only Google Publisher authenticated POST URLs'
   assert.ok(calls.every(call=>call.url.startsWith(
     'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/')));
   assert.equal(calls[0].url,
-    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/products/basic_lifetime/tokens/'+token+':acknowledge');
+    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/products/basic_lifetime/tokens/'+encodeURIComponent(token)+':acknowledge');
   assert.equal(calls[2].url,
-    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/subscriptions/pro_monthly/tokens/'+token+':acknowledge');
+    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/subscriptions/pro_monthly/tokens/'+encodeURIComponent(token)+':acknowledge');
 });
 
 test('never send an acknowledgement for unknown products, wrong types or malicious tokens',async()=>{

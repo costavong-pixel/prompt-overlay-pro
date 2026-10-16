@@ -170,7 +170,7 @@ public final class PlansActivity extends Activity {
             13,MUTED,false),9);
         add(feedback,label("Google Play reviews are independent and do not affect selection.",
             12,TEAL,false),12);
-        add(feedback,action("Win a FREE Lifetime License from Us",BLUE,
+        add(feedback,action("Send detailed feedback",BLUE,
             ()->startActivity(new Intent(this,ProFeedbackActivity.class))),0);
         add(root,feedback,19);
 
@@ -227,28 +227,37 @@ public final class PlansActivity extends Activity {
         LinearLayout card=column();
         card.setBackground(bg(CARD,18));
         card.setPadding(dp(16),dp(16),dp(16),dp(15));
-        card.setContentDescription(t(planTitle(entry))+" · "+entry.targetUsd);
+        card.setContentDescription(t(planTitle(entry))+" · "+entry.targetUsd+" · "+
+            t(PlanCardCopy.cadenceLabel(entry))+" · "+t(planSummary(entry)));
         card.setClickable(true);
         card.setFocusable(true);
         card.setOnClickListener(v->showDetails(entry));
 
+        // Keep the price and title in the header, but place long renewal
+        // terms on their own full-width line. Previously the monthly terms
+        // expanded the price column into the title on narrow Android phones.
+        // A weighted title can wrap safely in Spanish, French and Arabic.
         LinearLayout row=new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         TextView title=label(planTitle(entry),18,TEXT,true);
-        row.addView(title,new LinearLayout.LayoutParams(0,-2,1));
+        LinearLayout.LayoutParams titleLayout=
+            new LinearLayout.LayoutParams(0,-2,1);
+        titleLayout.setMarginEnd(dp(12));
+        row.addView(title,titleLayout);
 
-        LinearLayout cost=column();
         TextView price=label(entry.targetUsd,20,TEAL,true);
         price.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
+        price.setMaxLines(1);
         priceLabels.put(entry.productId,price);
-        cost.addView(price,new LinearLayout.LayoutParams(-1,-2));
-        TextView cadence=label(entry.renewsAfterPurchase
-            ?"per month · renews after purchase":"one-time",11,MUTED,false);
-        cadence.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
-        cost.addView(cadence,new LinearLayout.LayoutParams(-1,-2));
-        row.addView(cost,new LinearLayout.LayoutParams(-2,-2));
-        add(card,row,9);
+        row.addView(price,new LinearLayout.LayoutParams(-2,-2));
+        add(card,row,4);
+
+        TextView cadence=label(PlanCardCopy.cadenceLabel(entry),
+            12,MUTED,false);
+        cadence.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
+        cadence.setMaxLines(3);
+        add(card,cadence,10);
         add(card,label(planSummary(entry),13,MUTED,false),10);
         add(card,label("See included features",12,TEAL,true),0);
         return card;
@@ -288,7 +297,7 @@ public final class PlansActivity extends Activity {
     }
     private void updateAccountStatus(){
         if(accessLabel==null)return;
-        if(BuildConfig.DEBUG&&BuildConfig.APPLICATION_ID.endsWith(".proalpha19")){
+        if(BuildConfig.DEBUG&&BuildConfig.APPLICATION_ID.endsWith(".proalpha20")){
             accessLabel.setText(t(
                 "Side-by-side preview only. Your active 90-day trial remains in Alpha18."));
             return;

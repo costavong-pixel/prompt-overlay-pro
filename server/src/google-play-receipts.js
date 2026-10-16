@@ -6,12 +6,14 @@ const API_ORIGIN='https://androidpublisher.googleapis.com';
 const API_PREFIX='/androidpublisher/v3/applications/';
 
 /**
- * Read-only client for the authenticated Google Play Developer API. This
- * class does NOT grant purchases, acknowledge, refund or mutate the database.
+ * Authenticated Google Publisher purchase reader and optional server-side
+ * acknowledgement. It does NOT grant access, refund, consume purchases, or
+ * mutate the database. Only a validated purchase-service may call
+ * acknowledge(). Neither Android nor anonymous HTTP can call this directly.
  *
- * Production activation requires service-account configuration inside the
- * isolated host (not a client OAuth secret), Play Console API permissions,
- * server-only purchase-token binding and RTDN/refund reconciliation.
+ * Production activation requires a separately authorized service identity,
+ * product configuration, token ownership controls, RTDN/voided-purchase
+ * reconciliation, and audited rollback.
  */
 export class GooglePlayReceiptReader {
   constructor({googleClient,packageName=GOOGLE_PLAY_PACKAGE}={}){

@@ -1,0 +1,72 @@
+name: Play Billing Console internal AAB preflight (unsigned)
+on:
+  push:
+    branches:
+      - play-billing-console-bootstrap
+permissions:
+  contents: read
+concurrency:
+  group: play-billing-console-bootstrap-aab
+  cancel-in-progress: true
+jobs:
+  internal-aab-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out isolated product-setup bootstrap
+        uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.14.3
+      - name: Install Android SDK 36
+        run: |
+          echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
+          echo "/usr/local/lib/android/sdk/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses >/dev/null
+          /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+      - name: Compile Android release AAB, tests and lint — NO signing
+        run: |
+          set -euo pipefail
+          test -z "${PROMPT_OVERLAY_UPLOAD_KEYSTORE:-}"
+          gradle --no-daemon --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8" \
+            --max-workers=2 :app:testDebugUnitTest :app:lintRelease :app:bundleRelease
+      - name: Prove correct package, permission, version and disabled checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAB=app/build/outputs/bundle/release/app-release.aab
+          test -s "$AAB"
+          grep -Fq 'applicationId "com.costavong.promptoverlay"' app/build.gradle
+          grep -Fq 'versionCode 58' app/build.gradle
+          grep -Fq 'versionName "2.0.0-billing-console-internal"' app/build.gradle
+          grep -Fq 'com.android.vending.BILLING' app/src/main/AndroidManifest.xml
+          grep -Fq 'implementation "com.android.billingclient:billing:9.1.0"' app/build.gradle
+          grep -Fq 'REAL_CHECKOUT_ENABLED=false' app/src/main/java/com/costavong/promptoverlay/access/PlanCatalog.java
+          grep -Fq 'manifestPlaceholders = [proEnabled: "false"]' app/build.gradle
+          unzip -l "$AAB" | grep -F 'base/manifest/AndroidManifest.xml'
+          unzip -p "$AAB" base/manifest/AndroidManifest.xml | grep -aFq 'com.android.vending.BILLING'
+          mkdir -p deliverables
+          cp "$AAB" deliverables/UNSIGNED-PromptOverlay-internal-billing-bootstrap.aab
+          sha256sum deliverables/*.aab | tee deliverables/SHA256SUMS.txt
+          {
+            echo 'Package: com.costavong.promptoverlay (real Play listing)'
+            echo 'Version: 2.0.0-billing-console-internal / code 58 (check highest uploaded Play version)'
+            echo 'Google Play Billing permission: PRESENT in AAB manifest'
+            echo 'Billing Library: 9.1.0'
+            echo 'Pro editor screens: disabled for this provisional release variant'
+            echo 'Actual purchases: DISABLED'
+            echo 'Signing: UNSIGNED. NOT accepted by Google Play until signed with original upload key.'
+            echo 'Target: INTERNAL TESTING track ONLY. NEVER PRODUCTION.'
+            cat deliverables/SHA256SUMS.txt
+          } | tee deliverables/BUILD-VALIDATION.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PromptOverlay-Internal-Billing-Bootstrap-UNSIGNED
+          path: deliverables/
+          retention-days: 7
+          if-no-files-found: error

@@ -38,3 +38,38 @@ test('Play error or malformed response never becomes a purchase grant',async()=>
   const broken=new GooglePlayReceiptReader({googleClient:{request:async()=>({data:null})}});
   await assert.rejects(()=>broken.getSubscription(token),/Invalid Google Publisher response/);
 });
+
+test('server acknowledgements use only Google Publisher authenticated POST URLs',async()=>{
+  const calls=[];
+  const reader=new GooglePlayReceiptReader({googleClient:{
+    request:async options=>{calls.push(options);return {data:{}};}
+  }});
+  await reader.acknowledge({type:'inapp',productId:'basic_lifetime',token});
+  await reader.acknowledge({type:'inapp',productId:'pro_lifetime',token});
+  await reader.acknowledge({type:'subs',productId:'pro_monthly',token});
+  assert.equal(calls.length,3);
+  assert.ok(calls.every(call=>call.method==='POST'));
+  assert.ok(calls.every(call=>call.url.startsWith(
+    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/')));
+  assert.equal(calls[0].url,
+    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/products/basic_lifetime/tokens/'+encodeURIComponent(token)+':acknowledge');
+  assert.equal(calls[2].url,
+    'https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.costavong.promptoverlay/purchases/subscriptions/pro_monthly/tokens/'+encodeURIComponent(token)+':acknowledge');
+});
+
+test('never send an acknowledgement for unknown products, wrong types or malicious tokens',async()=>{
+  const calls=[];
+  const reader=new GooglePlayReceiptReader({googleClient:{
+    request:async options=>{calls.push(options);return {data:{}};}
+  }});
+  for(const invalid of [
+    {type:'subs',productId:'pro_lifetime',token},
+    {type:'inapp',productId:'pro_monthly',token},
+    {type:'inapp',productId:'unknown_product',token},
+    {type:'inapp',productId:'basic_lifetime',token:'../../bad'},
+    {type:'unknown',productId:'pro_lifetime',token}
+  ]){
+    await assert.rejects(()=>reader.acknowledge(invalid));
+  }
+  assert.equal(calls.length,0);
+});

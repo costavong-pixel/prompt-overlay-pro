@@ -29,8 +29,8 @@ android {
         minSdk 26
         targetSdk 36
         // Trial identity prototype only. Production still excludes Pro editor.
-        versionCode 56
-        versionName "2.0.0-pro-alpha20-layout"
+        versionCode 57
+        versionName "2.0.0-pro-alpha21-billing"
         buildConfigField "String", "TRIAL_WEB_CLIENT_ID", "\"${trialOauthId}\""
         buildConfigField "String", "TRIAL_API_URL", "\"${trialApiUrl}\""
         buildConfigField "boolean", "PRO_TEST", "false"
@@ -89,8 +89,8 @@ android {
                 applicationIdSuffix ".protest"
                 resValue "string", "app_name", "Prompt Overlay Pro QA"
             } else {
-                applicationIdSuffix ".proalpha20"
-                resValue "string", "app_name", "Prompt Overlay A20 Preview"
+                applicationIdSuffix ".proalpha21"
+                resValue "string", "app_name", "Prompt Overlay A21 Preview"
             }
             buildConfigField "boolean", "PRO_TEST", "true"
             manifestPlaceholders = [proEnabled: "true"]

@@ -7,6 +7,7 @@ on:
       - fix/alpha16-90day-trial-only
       - feature/trial90-deployment-bridge
       - feature/alpha19-billing-restore-preflight
+      - alpha21-play-billing-foundation
   pull_request:
     paths:
       - "server/**"

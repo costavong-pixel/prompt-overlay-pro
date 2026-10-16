@@ -50,7 +50,7 @@ public final class TrialAccountActivity extends Activity {
 
     private boolean isIsolatedBillingPreview(){
         return BuildConfig.DEBUG &&
-            BuildConfig.APPLICATION_ID.endsWith(".proalpha20");
+            BuildConfig.APPLICATION_ID.endsWith(".proalpha21");
     }
     private String session;
     private int dp(float v){return Math.round(v*getResources().getDisplayMetrics().density);}

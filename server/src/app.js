@@ -1,7 +1,8 @@
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';
-import { TrialStore } from './store.js';
+import { TrialStore, hashValue } from './store.js';
+import { expectedObfuscatedAccountId } from './play-purchase-policy.js';
 
 export function makeGoogleVerifier(clientId) {
   const client=new OAuth2Client(clientId);
@@ -20,7 +21,7 @@ function bearer(req){
   return header.substring(7).trim();
 }
 
-export function createApp({store,verifyGoogleToken}) {
+export function createApp({store,verifyGoogleToken,purchaseService=null}) {
   if(!(store instanceof TrialStore)||typeof verifyGoogleToken!=='function')
     throw new Error('TrialStore and token verifier required');
   const app=express();
@@ -74,15 +75,43 @@ export function createApp({store,verifyGoogleToken}) {
     req.sessionToken=token;
     next();
   });
-  app.get('/v1/entitlements',(req,res)=>res.json(store.entitlement(req.authenticatedUser)));
+  app.get('/v1/entitlements',(req,res)=>{
+    const current=store.entitlement(req.authenticatedUser);
+    if(purchaseService){
+      const paid=purchaseService.access(req.authenticatedUser);
+      current.ownsBasicLifetime ||= paid.ownsBasicLifetime;
+      current.ownsProLifetime ||= paid.ownsProLifetime;
+      current.monthlyAccessUntilMs=Math.max(
+        current.monthlyAccessUntilMs,paid.monthlyAccessUntilMs);
+    }
+    res.json(current);
+  });
+
+  // The phone must send this stable, authenticated and hashed account binding
+  // to Google Play BillingFlowParams.setObfuscatedAccountId. It does NOT grant
+  // any right on its own and cannot be supplied by an unauthenticated caller.
+  app.get('/v1/billing/account-id',(req,res)=>{
+    res.json({obfuscatedAccountId:expectedObfuscatedAccountId(
+      req.authenticatedUser.id,hashValue)});
+  });
   app.post('/v1/logout',(req,res)=>{
     store.revokeToken(req.sessionToken);
     res.status(204).end();
   });
-  // Explicitly fail closed. Adding Google Play Billing will require backend
-  // purchase verification and acknowledgement, not client-supplied flags.
-  app.post('/v1/purchases/verify',(_req,res)=>
-    res.status(503).json({error:'BILLING_NOT_ENABLED'}));
+  // The deployed server passes no purchaseService. It remains HTTP 503 until
+  // a separately reviewed production payment/RTDN/voided-purchases rollout.
+  app.post('/v1/purchases/verify',authLimit,async(req,res)=>{
+    if(!purchaseService)
+      return res.status(503).json({error:'BILLING_NOT_ENABLED'});
+    try{
+      const result=await purchaseService.verify(req.authenticatedUser,req.body);
+      return res.status(result.verified?200:409).json(result);
+    }catch{
+      // Never expose receipt tokens, Google account identifiers, or service
+      // credentials in errors or HTTP responses.
+      return res.status(503).json({error:'PURCHASE_VERIFICATION_UNAVAILABLE'});
+    }
+  });
   app.use((err,_req,res,_next)=>{
     if(err?.type==='entity.too.large')return res.status(413).json({error:'REQUEST_TOO_LARGE'});
     if(err instanceof SyntaxError&&'body' in err)return res.status(400).json({error:'INVALID_JSON'});

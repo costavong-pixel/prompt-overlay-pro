@@ -6,12 +6,14 @@ const API_ORIGIN='https://androidpublisher.googleapis.com';
 const API_PREFIX='/androidpublisher/v3/applications/';
 
 /**
- * Read-only client for the authenticated Google Play Developer API. This
- * class does NOT grant purchases, acknowledge, refund or mutate the database.
+ * Authenticated Google Publisher purchase reader and optional server-side
+ * acknowledgement. It does NOT grant access, refund, consume purchases, or
+ * mutate the database. Only a validated purchase-service may call
+ * acknowledge(). Neither Android nor anonymous HTTP can call this directly.
  *
- * Production activation requires service-account configuration inside the
- * isolated host (not a client OAuth secret), Play Console API permissions,
- * server-only purchase-token binding and RTDN/refund reconciliation.
+ * Production activation requires a separately authorized service identity,
+ * product configuration, token ownership controls, RTDN/voided-purchase
+ * reconciliation, and audited rollback.
  */
 export class GooglePlayReceiptReader {
   constructor({googleClient,packageName=GOOGLE_PLAY_PACKAGE}={}){
@@ -40,12 +42,35 @@ export class GooglePlayReceiptReader {
     return this.get('subscriptionsv2',token);
   }
 
-  async get(type,token){
-    if(type!=='productsv2'&&type!=='subscriptionsv2')
-      throw new Error('Unsupported Play purchase resource');
+  static requireValidToken(token){
     if(typeof token!=='string'||token.length<20||token.length>4096||
         !/^[a-zA-Z0-9._:-]+$/.test(token))
       throw new Error('Invalid Play purchase token');
+  }
+
+  /** An authenticated acknowledgement never grants entitlements itself. */
+  async acknowledge({type,productId,token}){
+    if(type!=='inapp'&&type!=='subs')
+      throw new Error('Unsupported product type for acknowledgement');
+    if(!['basic_lifetime','pro_lifetime','pro_monthly'].includes(productId))
+      throw new Error('Unknown Play product');
+    if((type==='subs')!==(productId==='pro_monthly'))
+      throw new Error('Product type does not match ID');
+    GooglePlayReceiptReader.requireValidToken(token);
+    const base=API_ORIGIN+API_PREFIX+GOOGLE_PLAY_PACKAGE+'/purchases/';
+    const path=type==='inapp'
+      ?'products/'+encodeURIComponent(productId)+'/tokens/'+encodeURIComponent(token)
+      :'subscriptions/'+encodeURIComponent(productId)+'/tokens/'+encodeURIComponent(token);
+    await this.googleClient.request({
+      url:base+path+':acknowledge',method:'POST',data:{},
+      timeout:12000,headers:{'Content-Type':'application/json'}
+    });
+  }
+
+  async get(type,token){
+    if(type!=='productsv2'&&type!=='subscriptionsv2')
+      throw new Error('Unsupported Play purchase resource');
+    GooglePlayReceiptReader.requireValidToken(token);
     // Never interpolate a caller-controlled hostname or package ID.
     const url=API_ORIGIN+API_PREFIX+GOOGLE_PLAY_PACKAGE+
       '/purchases/'+type+'/tokens/'+encodeURIComponent(token);

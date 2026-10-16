@@ -297,7 +297,7 @@ public final class PlansActivity extends Activity {
     }
     private void updateAccountStatus(){
         if(accessLabel==null)return;
-        if(BuildConfig.DEBUG&&BuildConfig.APPLICATION_ID.endsWith(".proalpha20")){
+        if(BuildConfig.DEBUG&&BuildConfig.APPLICATION_ID.endsWith(".proalpha21")){
             accessLabel.setText(t(
                 "Side-by-side preview only. Your active 90-day trial remains in Alpha18."));
             return;

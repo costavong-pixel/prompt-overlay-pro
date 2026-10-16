@@ -37,6 +37,24 @@ public final class TrialApi {
     public JSONObject entitlement(String bearer)throws IOException{
         return exchange("GET","/v1/entitlements",bearer,null);
     }
+
+    /**
+     * Retrieve an account-specific SHA-256 identifier for Play checkout.
+     * This cannot be invented on the phone and is not itself an entitlement.
+     */
+    public JSONObject billingIdentity(String bearer)throws IOException{
+        return exchange("GET","/v1/billing/account-id",bearer,null);
+    }
+
+    /** The server verifies Google receipt + account ownership before granting. */
+    public JSONObject verifyPurchase(String bearer,String productId,String token)throws IOException{
+        JSONObject request=new JSONObject();
+        try{
+            request.put("productId",productId);
+            request.put("purchaseToken",token);
+        }catch(Exception e){throw new IOException("Cannot prepare purchase verification",e);}
+        return exchange("POST","/v1/purchases/verify",bearer,request);
+    }
     public void logout(String bearer)throws IOException{
         exchange("POST","/v1/logout",bearer,new JSONObject());
     }

@@ -29,8 +29,8 @@ android {
         minSdk 26
         targetSdk 36
         // Trial identity prototype only. Production still excludes Pro editor.
-        versionCode 57
-        versionName "2.0.0-pro-alpha21-billing"
+        versionCode 58
+        versionName "2.0.0-billing-console-internal"
         buildConfigField "String", "TRIAL_WEB_CLIENT_ID", "\"${trialOauthId}\""
         buildConfigField "String", "TRIAL_API_URL", "\"${trialApiUrl}\""
         buildConfigField "boolean", "PRO_TEST", "false"

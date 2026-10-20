@@ -109,9 +109,13 @@ export class PlayCatalogReadOnlyClient {
       const result=await this.googleClient.request({
         url,method:'GET',timeout:12000,headers:{Accept:'application/json'}
       });
-      if(!result?.data||!Array.isArray(result.data[itemsField]))
+      if(!result?.data||typeof result.data!=='object'||Array.isArray(result.data))
         throw new Error('Google Publisher catalog response invalid');
-      collected.push(...result.data[itemsField]);
+      // Google's JSON responses may omit an empty collection altogether.
+      const rows=result.data[itemsField]??[];
+      if(!Array.isArray(rows))
+        throw new Error('Google Publisher catalog response invalid');
+      collected.push(...rows);
       if(collected.length>1000)throw new Error('Unexpectedly large catalog');
       const next=result.data.nextPageToken;
       if(next==null||next==='')return collected;

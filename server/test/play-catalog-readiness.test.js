@@ -122,6 +122,6 @@ test('invalid catalog responses and repeated page token are never successful',as
   await assert.rejects(()=>repeated.audit(),/repeated pagination token/);
   const bad=new PlayCatalogReadOnlyClient({request:async()=>({data:'invalid'})});
   await assert.rejects(()=>bad.audit(),/response invalid/);
-  assert.throws(()=>new PlayCatalogReadOnlyClient({}),/authenticated/);
+  assert.throws(()=>new PlayCatalogReadOnlyClient({}),/Authenticated/);
   assert.throws(()=>auditPlayCatalog(null,[]),/required/);
 });

@@ -46,7 +46,7 @@ function setup(nowFn=()=>NOW){
   const monthly=(token=TOKEN_TWO)=>{
     const decision=evaluateMonthly({
       subscriptionState:'SUBSCRIPTION_STATE_ACTIVE',
-      lineItems:[{productId:'pro_monthly',expiryTime:new Date(NOW+DAY).toISOString()}],
+      lineItems:[{productId:'pro_monthly',expiryTime:new Date(NOW+DAY).toISOString(),autoRenewingPlan:{autoRenewEnabled:true},offerDetails:{basePlanId:'monthly'}}],
       externalAccountIdentifiers:{obfuscatedExternalAccountId:owner},
       acknowledgementState:'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED'
     },NOW,owner);

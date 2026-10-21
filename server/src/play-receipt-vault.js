@@ -72,8 +72,21 @@ export class PlayReceiptVault {
     return {stored:true,tokenHash};
   }
 
-  /** Server-worker only; never expose returned token to clients or logs. */
+  /** Normal worker reads exclude revoked or refund-held receipts. */
   unlock({tokenHash,userId,productId}){
+    return this.decryptReceipt({tokenHash,userId,productId},false);
+  }
+
+  /**
+   * PRIVILEGED reconciliation worker ONLY: obtain a held subscription token
+   * to check Google's latest successful renewal order before any release.
+   * Do not expose this method from a web route or API response.
+   */
+  unlockForReconciliation({tokenHash,userId,productId}){
+    return this.decryptReceipt({tokenHash,userId,productId},true);
+  }
+
+  decryptReceipt({tokenHash,userId,productId},allowHeld){
     if(!/^[a-f0-9]{64}$/.test(tokenHash)||typeof userId!=='string'||
         typeof productId!=='string')throw new TypeError('Valid claim identity required');
     const record=this.store.db.prepare(`SELECT r.*
@@ -82,8 +95,8 @@ export class PlayReceiptVault {
       LEFT JOIN play_refund_holds h ON h.token_hash=c.token_hash
       WHERE r.token_hash=? AND c.user_id=? AND c.product_id=?
         AND r.user_id=c.user_id AND r.product_id=c.product_id
-        AND c.status='active' AND h.token_hash IS NULL`)
-      .get(tokenHash,userId,productId);
+        AND c.status='active' AND (h.token_hash IS NULL OR ?=1)`)
+      .get(tokenHash,userId,productId,allowHeld?1:0);
     if(!record)throw new Error('No active encrypted receipt for account');
     if(record.iv.length!==IV_BYTES||record.tag.length!==TAG_BYTES)
       throw new Error('Invalid encrypted purchase-token payload');

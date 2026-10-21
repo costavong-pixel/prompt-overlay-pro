@@ -31,6 +31,16 @@ checkout or paid entitlement grants.
 - Purchase verification rejects both earlier-refunded tokens and revocation
   holds before Google calls and again after receipt retrieval. The ledger
   refuses to record the claim if a refund was observed concurrently.
+- **Encrypted purchase-token vault:** Verified Google receipts are saved using
+  AES-256-GCM with a fresh 96-bit IV, 128-bit authentication tag, and AAD
+  binding immutable token hash, user UUID and SKU. SQLite stores encrypted
+  BLOBs, not plaintext purchase or order tokens. `PlayPurchaseService` now
+  REQUIRES a protected 32-byte receipt key, and a verified grant plus encrypted
+  token are saved in the **same** SQLite transaction; an encryption failure
+  rolls back the entitlement. Background workers can later decrypt tokens
+  to verify active renewals/refunds, including held subscriptions only under
+  a distinct privileged reconciliation method. No API endpoint can read
+  the decrypted tokens. **A production key does not exist yet.**
 - Periodic polling uses overlapping 24-hour windows and advances its
   SQLite checkpoint only after processing **every page**. If offline longer
   than 28 days, polling stops with a clear gap error instead of silently
@@ -52,6 +62,13 @@ checkout or paid entitlement grants.
 - No RTDN Pub/Sub verification or secure OIDC-authenticated webhook. RTDN
   must later be set up to detect renewals, on-hold transitions, refunds and
   cancellations promptly; periodic refunds alone are not enough.
+- The encryption key's **secure local generation, backup, rotation and
+  restoration drills** are still pending. Until an approved key exists,
+  `PlayPurchaseService` cannot be instantiated and the live app remains
+  fail closed. The key must never be published in chat, GitHub, AAB or VPS
+  logs; losing it makes encrypted past purchase tokens unrecoverable.
+  Owners could still restore on-device purchases with Google Play receipts,
+  but this is not an acceptable production recovery strategy.
 - No safe automatic **release** of a held subscription after a refunded
   renewal. This requires latest-order / `latestSuccessfulOrderId` checks,
   order-scoped void matching, and replacement-token checks. Holds currently
@@ -91,6 +108,10 @@ checkout or paid entitlement grants.
 4. From a locally checked-out reviewed branch, *only when credentials have
    been configured and authorized*, run the non-mutating command:
    `cd server && npm ci && npm run preflight:play`.
+   This command does **not** load or generate the receipt-encryption key.
+   A later approved commercial runner must separately load a dedicated
+   private `PLAY_RECEIPT_KEY_FILE` using `loadPlayReceiptKey` and inject
+   its 32-byte value into `PlayPurchaseService` without logging it.
 5. A PASS confirms **only** authentication and read-only voided API access;
    it does not establish purchase verification, update the live service,
    prove subscriptions work, or grant any user access.
@@ -117,6 +138,9 @@ subscription token-hold by individual renewal order, duplicate/paginated
 publisher reports, network failure with checkpoint unchanged, out-of-window
 errors, encrypted transport origin pinning, invalid SKU/offer safeguards,
 and no raw purchase tokens stored in the SQLite refund ledger.
+Separate vault tests cover AES-GCM ciphertext tampering, wrong-account
+decryption, refunds blocking ordinary token access, server-only held-token
+reconciliation and transactional grant rollback on encrypted-volume failure.
 
 The next step after tests is **independent code/security review**, not
 deployment or Google Play activation.

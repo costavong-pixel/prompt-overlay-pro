@@ -24,7 +24,7 @@ const monthly=(state='SUBSCRIPTION_STATE_ACTIVE',owner=bound,expiry=new Date(NOW
   subscriptionState:state,
   externalAccountIdentifiers:{obfuscatedExternalAccountId:owner},
   acknowledgementState:'ACKNOWLEDGEMENT_STATE_PENDING',
-  lineItems:[{productId:'pro_monthly',expiryTime:expiry}]
+  lineItems:[{productId:'pro_monthly',expiryTime:expiry,autoRenewingPlan:{autoRenewEnabled:true},offerDetails:{basePlanId:'monthly'}}]
 });
 
 test('Google Play package and per-user billing binding are unique',()=>{
@@ -99,7 +99,7 @@ test('monthly validation rejects malformed items and acknowledgments',()=>{
   assert.equal(evaluateMonthly({...m,lineItems:[]},NOW,bound).reason,'PRODUCT_MISMATCH');
   assert.equal(evaluateMonthly({...m,lineItems:[{productId:'other',expiryTime:new Date(NOW+10).toISOString()}]},NOW,bound).reason,'PRODUCT_MISMATCH');
   assert.equal(evaluateMonthly({...m,lineItems:[m.lineItems[0],m.lineItems[0]]},NOW,bound).reason,'PRODUCT_MISMATCH');
-  assert.equal(evaluateMonthly({...m,lineItems:[{productId:'pro_monthly',expiryTime:'not-a-date'}]},NOW,bound).reason,'SUBSCRIPTION_EXPIRED');
+  assert.equal(evaluateMonthly({...m,lineItems:[{productId:'pro_monthly',expiryTime:'not-a-date',autoRenewingPlan:{autoRenewEnabled:true}}]},NOW,bound).reason,'SUBSCRIPTION_EXPIRED');
   assert.equal(evaluateMonthly({...m,acknowledgementState:'UNKNOWN'},NOW,bound).reason,'UNKNOWN_ACKNOWLEDGEMENT_STATE');
   assert.equal(evaluateMonthly(m,NaN,bound).reason,'INVALID_RESPONSE');
 });

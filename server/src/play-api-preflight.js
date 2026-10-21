@@ -1,4 +1,6 @@
 import {stat} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {pathToFileURL} from 'node:url';
 import {GooglePlayReceiptReader} from './google-play-receipts.js';
 
 /**
@@ -48,7 +50,6 @@ async function main(){
 
 // Only run when directly invoked via npm script; imports must be side-effect
 // free so unit tests can inject a fake Google Publisher transport.
-if(process.argv[1]&&import.meta.url===new URL(
-  'file://'+process.argv[1]).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
   await main();
 }

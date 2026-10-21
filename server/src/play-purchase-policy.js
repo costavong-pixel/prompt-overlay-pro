@@ -106,6 +106,9 @@ export function evaluateMonthly(response,nowMs,obfuscatedAccountId){
   // Only this app's standard monthly auto-renewing base plan is supported.
   // Never silently convert a prepaid plan or an unrelated offer to Pro.
   if(items[0]?.prepaidPlan!=null)return reject('PREPAID_NOT_SUPPORTED');
+  if(!items[0]?.autoRenewingPlan||
+      typeof items[0].autoRenewingPlan!=='object')
+    return reject('AUTO_RENEWING_PLAN_REQUIRED');
   if(items[0]?.offerDetails?.basePlanId!=null&&
       items[0].offerDetails.basePlanId!=='monthly')
     return reject('BASE_PLAN_MISMATCH');

@@ -27,7 +27,7 @@ function fixture(nowFn=()=>TS){
     throw Error('No such Google Play purchase');
   }};
   const reader=new GooglePlayReceiptReader({googleClient:client});
-  const service=new PlayPurchaseService({reader,store});
+  const service=new PlayPurchaseService({reader,store,receiptKey:Buffer.alloc(32,0x17)});
   const owner=user=>expectedObfuscatedAccountId(user.id,hashValue);
   const inapp=(user,productId='pro_lifetime',state='PURCHASED')=>({
     purchaseStateContext:{purchaseState:state},
@@ -39,7 +39,7 @@ function fixture(nowFn=()=>TS){
   const monthly=(user,state='SUBSCRIPTION_STATE_ACTIVE')=>({
     subscriptionState:state,acknowledgementState:'ACKNOWLEDGEMENT_STATE_PENDING',
     externalAccountIdentifiers:{obfuscatedExternalAccountId:owner(user)},
-    lineItems:[{productId:'pro_monthly',expiryTime:new Date(TS+2*DAY).toISOString()}]
+    lineItems:[{productId:'pro_monthly',expiryTime:new Date(TS+2*DAY).toISOString(),autoRenewingPlan:{autoRenewEnabled:true},offerDetails:{basePlanId:'monthly'}}]
   });
   return {store,bob,alice,receipts,calls,service,owner,inapp,monthly,close:()=>store.close()};
 }
@@ -129,7 +129,7 @@ test('Google Publisher outage or acknowledgement error cannot create a grant',as
       return {data:f.inapp(f.bob)};
     }};
     const reader=new GooglePlayReceiptReader({googleClient:rejectAck});
-    const service=new PlayPurchaseService({reader,store:f.store});
+    const service=new PlayPurchaseService({reader,store:f.store,receiptKey:Buffer.alloc(32,0x17)});
     const result=await service.verify(f.bob,{productId:'pro_lifetime',purchaseToken:TOKENS[0]});
     assert.equal(result.reason,'ACKNOWLEDGEMENT_RETRY_REQUIRED');
     assert.equal(f.store.db.prepare('SELECT COUNT(*) AS c FROM play_claims').get().c,0);

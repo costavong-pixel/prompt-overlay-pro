@@ -56,11 +56,23 @@ export function evaluateOneTime(response,productId,obfuscatedAccountId){
     return reject('PRODUCT_MISMATCH');
   if(!isExpectedBoundAccount(response.obfuscatedExternalAccountId,obfuscatedAccountId))
     return reject('ACCOUNT_MISMATCH');
+  const details=rows[0]?.productOfferDetails;
+  if(!details||typeof details!=='object')
+    return reject('INVALID_PURCHASE_OPTION');
+  // The actual purchase option is part of Google's signed purchase state,
+  // not an arbitrary label sent by Android.
+  const expectedOption=productId==='basic_lifetime'?'basic-buy':'pro-buy';
+  if(details.purchaseOptionId!=null&&
+      details.purchaseOptionId!==expectedOption)
+    return reject('PURCHASE_OPTION_MISMATCH');
+  // A permanent license cannot be provided by a rental or preorder.
+  if(details.rentOfferDetails!=null||details.preorderOfferDetails!=null)
+    return reject('NON_LIFETIME_PURCHASE');
+  if(details.consumptionState!=='CONSUMPTION_STATE_YET_TO_BE_CONSUMED')
+    return reject('CONSUMED_PURCHASE');
   const ack=response.acknowledgementState;
   if(!['ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED','ACKNOWLEDGEMENT_STATE_PENDING'].includes(ack))
     return reject('UNKNOWN_ACKNOWLEDGEMENT_STATE');
-  if(rows[0]?.productOfferDetails?.consumptionState==='CONSUMPTION_STATE_CONSUMED')
-    return reject('CONSUMED_PURCHASE');
   return approve({
     productId,kind:'lifetime',
     needsAcknowledgement:ack==='ACKNOWLEDGEMENT_STATE_PENDING'
@@ -91,6 +103,15 @@ export function evaluateMonthly(response,nowMs,obfuscatedAccountId){
   const items=response.lineItems;
   if(!Array.isArray(items)||items.length!==1||items[0]?.productId!=='pro_monthly')
     return reject('PRODUCT_MISMATCH');
+  // Only this app's standard monthly auto-renewing base plan is supported.
+  // Never silently convert a prepaid plan or an unrelated offer to Pro.
+  if(items[0]?.prepaidPlan!=null)return reject('PREPAID_NOT_SUPPORTED');
+  if(!items[0]?.autoRenewingPlan||
+      typeof items[0].autoRenewingPlan!=='object')
+    return reject('AUTO_RENEWING_PLAN_REQUIRED');
+  if(items[0]?.offerDetails?.basePlanId!=null&&
+      items[0].offerDetails.basePlanId!=='monthly')
+    return reject('BASE_PLAN_MISMATCH');
   const expires=Date.parse(items[0]?.expiryTime||'');
   if(!Number.isFinite(expires)||!Number.isSafeInteger(expires)||expires<=nowMs)
     return reject('SUBSCRIPTION_EXPIRED');

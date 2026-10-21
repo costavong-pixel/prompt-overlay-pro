@@ -42,6 +42,46 @@ export class GooglePlayReceiptReader {
     return this.get('subscriptionsv2',token);
   }
 
+  /**
+   * Query both in-app and subscription voids from Google's authenticated
+   * Publisher API. Pagination must use pageSelection.token; Google ignores
+   * the start/end filters on subsequent pages. No tokens stored or logged.
+   */
+  async getVoided({fromMs,toMs,pageToken=null,nowMs=Date.now()}={}){
+    if(!Number.isSafeInteger(nowMs)||!Number.isSafeInteger(fromMs)||
+        !Number.isSafeInteger(toMs)||fromMs<=0||fromMs>toMs||
+        toMs>nowMs||fromMs<nowMs-30*24*60*60*1000)
+      throw new TypeError('Voided purchase query must be within last 30 days');
+    if(pageToken!==null&&(typeof pageToken!=='string'||
+        pageToken.length<1||pageToken.length>2048||
+        !/^[A-Za-z0-9_+=/.-]+$/.test(pageToken)))
+      throw new TypeError('Invalid Google pagination token');
+
+    const query=new URLSearchParams();
+    query.set('type','1'); // include subscriptions AND one-time purchases
+    query.set('pageSelection.maxResults','100');
+    query.set('includeQuantityBasedPartialRefund','true');
+    if(pageToken){
+      query.set('pageSelection.token',pageToken);
+    }else{
+      query.set('startTime',String(fromMs));
+      query.set('endTime',String(toMs));
+    }
+    const url=API_ORIGIN+API_PREFIX+GOOGLE_PLAY_PACKAGE+
+      '/purchases/voidedpurchases?'+query.toString();
+    const result=await this.googleClient.request({
+      url,method:'GET',timeout:12000,headers:{Accept:'application/json'}
+    });
+    const data=result?.data;
+    if(!data||typeof data!=='object'||Array.isArray(data)||
+        (data.voidedPurchases!==undefined&&!Array.isArray(data.voidedPurchases)))
+      throw new Error('Invalid Google voided-purchases response');
+    const next=data.tokenPagination?.nextPageToken??null;
+    if(next!==null&&(typeof next!=='string'||next.length<1||next.length>2048))
+      throw new Error('Invalid Google voided-purchases pagination');
+    return {items:data.voidedPurchases??[],nextPageToken:next};
+  }
+
   static requireValidToken(token){
     if(typeof token!=='string'||token.length<20||token.length>4096||
         !/^[a-zA-Z0-9._:-]+$/.test(token))

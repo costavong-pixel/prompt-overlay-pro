@@ -24,7 +24,7 @@ const monthly=(state='SUBSCRIPTION_STATE_ACTIVE',owner=bound,expiry=new Date(NOW
   subscriptionState:state,
   externalAccountIdentifiers:{obfuscatedExternalAccountId:owner},
   acknowledgementState:'ACKNOWLEDGEMENT_STATE_PENDING',
-  lineItems:[{productId:'pro_monthly',expiryTime:expiry}]
+  lineItems:[{productId:'pro_monthly',expiryTime:expiry,autoRenewingPlan:{autoRenewEnabled:true},offerDetails:{basePlanId:'monthly'}}]
 });
 
 test('Google Play package and per-user billing binding are unique',()=>{
@@ -99,7 +99,7 @@ test('monthly validation rejects malformed items and acknowledgments',()=>{
   assert.equal(evaluateMonthly({...m,lineItems:[]},NOW,bound).reason,'PRODUCT_MISMATCH');
   assert.equal(evaluateMonthly({...m,lineItems:[{productId:'other',expiryTime:new Date(NOW+10).toISOString()}]},NOW,bound).reason,'PRODUCT_MISMATCH');
   assert.equal(evaluateMonthly({...m,lineItems:[m.lineItems[0],m.lineItems[0]]},NOW,bound).reason,'PRODUCT_MISMATCH');
-  assert.equal(evaluateMonthly({...m,lineItems:[{productId:'pro_monthly',expiryTime:'not-a-date'}]},NOW,bound).reason,'SUBSCRIPTION_EXPIRED');
+  assert.equal(evaluateMonthly({...m,lineItems:[{productId:'pro_monthly',expiryTime:'not-a-date',autoRenewingPlan:{autoRenewEnabled:true}}]},NOW,bound).reason,'SUBSCRIPTION_EXPIRED');
   assert.equal(evaluateMonthly({...m,acknowledgementState:'UNKNOWN'},NOW,bound).reason,'UNKNOWN_ACKNOWLEDGEMENT_STATE');
   assert.equal(evaluateMonthly(m,NaN,bound).reason,'INVALID_RESPONSE');
 });
@@ -112,4 +112,39 @@ test('nothing client-only can bypass server receipt verification',()=>{
   assert.equal(mayGrantFromGoogleReceipt({approved:false,kind:'monthly'}),false);
   assert.equal(evaluateOneTime({isPurchased:true,productId:'pro_lifetime'},'pro_lifetime',bound).approved,false);
   assert.equal(evaluateMonthly({subscriptionState:'SUBSCRIPTION_STATE_ACTIVE'},NOW,bound).approved,false);
+});
+
+test('configured one-time Buy options cannot be replaced by a rental, preorder or wrong offer',()=>{
+  for(const [sku,expected] of [
+    ['basic_lifetime','basic-buy'],
+    ['pro_lifetime','pro-buy']
+  ]){
+    const ok=lifetime(sku);
+    ok.productLineItem[0].productOfferDetails.purchaseOptionId=expected;
+    assert.equal(evaluateOneTime(ok,sku,bound).approved,true);
+    const wrong=structuredClone(ok);
+    wrong.productLineItem[0].productOfferDetails.purchaseOptionId='wrong-buy';
+    assert.equal(evaluateOneTime(wrong,sku,bound).reason,'PURCHASE_OPTION_MISMATCH');
+    const rental=structuredClone(ok);
+    rental.productLineItem[0].productOfferDetails.rentOfferDetails={};
+    assert.equal(evaluateOneTime(rental,sku,bound).reason,'NON_LIFETIME_PURCHASE');
+    const preorder=structuredClone(ok);
+    preorder.productLineItem[0].productOfferDetails.preorderOfferDetails={};
+    assert.equal(evaluateOneTime(preorder,sku,bound).reason,'NON_LIFETIME_PURCHASE');
+  }
+});
+
+test('only regular monthly auto-renewing base plan is eligible',()=>{
+  const ok=monthly();
+  ok.lineItems[0].offerDetails={basePlanId:'monthly'};
+  assert.equal(evaluateMonthly(ok,NOW,bound).approved,true);
+  const missing=structuredClone(ok);
+  delete missing.lineItems[0].autoRenewingPlan;
+  assert.equal(evaluateMonthly(missing,NOW,bound).reason,'AUTO_RENEWING_PLAN_REQUIRED');
+  const prepaid=structuredClone(ok);
+  prepaid.lineItems[0].prepaidPlan={allowExtendAfterTime:'never'};
+  assert.equal(evaluateMonthly(prepaid,NOW,bound).reason,'PREPAID_NOT_SUPPORTED');
+  const wrong=structuredClone(ok);
+  wrong.lineItems[0].offerDetails.basePlanId='annual';
+  assert.equal(evaluateMonthly(wrong,NOW,bound).reason,'BASE_PLAN_MISMATCH');
 });

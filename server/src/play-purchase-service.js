@@ -3,6 +3,7 @@ import {GOOGLE_PLAY_PACKAGE, KNOWN_PRODUCTS, expectedObfuscatedAccountId,
   evaluateOneTime,evaluateMonthly,mayGrantFromGoogleReceipt} from './play-purchase-policy.js';
 import {GooglePlayReceiptReader} from './google-play-receipts.js';
 import {PlayClaimLedger} from './play-claim-ledger.js';
+import {PlayReceiptVault} from './play-receipt-vault.js';
 
 /**
  * Staged secure purchase processor. It will only be exposed by createApp
@@ -10,12 +11,15 @@ import {PlayClaimLedger} from './play-claim-ledger.js';
  * Live server remains pinned to the pre-billing revision and HTTP 503.
  */
 export class PlayPurchaseService {
-  constructor({reader,store}){
+  constructor({reader,store,receiptKey}){
     if(!(reader instanceof GooglePlayReceiptReader)||!store?.db)
       throw new TypeError('Verified Google Publisher reader and TrialStore required');
+    // Commercial grants may NEVER run with only hashes and no encrypted
+    // restore tokens: the backend must be able to recheck renewals/refunds.
     this.reader=reader;
     this.store=store;
     this.ledger=new PlayClaimLedger(store);
+    this.vault=new PlayReceiptVault({store,key:receiptKey});
   }
 
   billingIdentity(user){
@@ -40,6 +44,10 @@ export class PlayPurchaseService {
     // actual identity and current purchase state. No client-provided receipt.
     try{GooglePlayReceiptReader.requireValidToken(purchaseToken);}
     catch{return {verified:false,reason:'INVALID_TOKEN'};}
+    // A voided/refunded purchase cannot be resurrected by a valid older
+    // Google receipt or a retry from the Android purchase callback.
+    const blocked=this.ledger.blockedReason(purchaseToken);
+    if(blocked)return {verified:false,reason:blocked};
     const owner=this.billingIdentity(user);
     let decision;
     try{
@@ -54,6 +62,9 @@ export class PlayPurchaseService {
     }
     if(!mayGrantFromGoogleReceipt(decision))
       return {verified:false,reason:decision?.reason||'REJECTED'};
+    // Re-check because the void reconciler can run during the Google API call.
+    const blockAfterGoogle=this.ledger.blockedReason(purchaseToken);
+    if(blockAfterGoogle)return {verified:false,reason:blockAfterGoogle};
 
     // Acknowledge from the authenticated server, not Android. A failed
     // acknowledgement returns a retriable response but never silently grants.
@@ -64,9 +75,23 @@ export class PlayPurchaseService {
         return {verified:false,reason:'ACKNOWLEDGEMENT_RETRY_REQUIRED'};
       }
     }
-    const saved=this.ledger.verifiedClaim({
-      user,token:purchaseToken,serverDecision:decision
-    });
+    let saved;
+    try{
+      // The entitlement and encrypted recheck token MUST commit together.
+      // If encryption or durable storage fails, SQLite rolls both back.
+      saved=this.store.db.transaction(()=>{
+        const grant=this.ledger.verifiedClaim({
+          user,token:purchaseToken,serverDecision:decision
+        });
+        if(!grant.saved)return grant;
+        this.vault.remember({
+          token:purchaseToken,userId:user.id,productId
+        });
+        return grant;
+      })();
+    }catch{
+      return {verified:false,reason:'PERSISTENCE_UNAVAILABLE'};
+    }
     if(!saved.saved)return {verified:false,reason:saved.reason};
     return {
       verified:true,productId,

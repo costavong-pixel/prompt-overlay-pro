@@ -170,3 +170,45 @@ test('held subscription token remains decryptable ONLY through privileged reconc
       userId:f.bob.id,productId:'pro_monthly'}),/No active encrypted receipt/);
   }finally{f.close();}
 });
+
+test('encrypted Play token survives SQLite restart with correct backup key only',async()=>{
+  const dir=await mkdtemp(join(tmpdir(),'play-vault-durable-'));
+  const filename=join(dir,'entitlements.sqlite');
+  let opened=null,vault=null;
+  try{
+    opened=new TrialStore(filename,()=>TIME);
+    const user=opened.signIn('durable-google-account').user;
+    const ledger=new PlayClaimLedger(opened);
+    vault=new PlayReceiptVault({store:opened,key:KEY});
+    const account=expectedObfuscatedAccountId(user.id,hashValue);
+    const decision=evaluateOneTime({
+      purchaseStateContext:{purchaseState:'PURCHASED'},
+      productLineItem:[{productId:'basic_lifetime',productOfferDetails:{
+        consumptionState:'CONSUMPTION_STATE_YET_TO_BE_CONSUMED',
+        purchaseOptionId:'basic-buy'
+      }}],
+      acknowledgementState:'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED',
+      obfuscatedExternalAccountId:account
+    },'basic_lifetime',account);
+    assert.equal(ledger.verifiedClaim({
+      user,token:TOKEN,serverDecision:decision
+    }).saved,true);
+    vault.remember({token:TOKEN,userId:user.id,productId:'basic_lifetime'});
+    vault.dispose();opened.close();
+    vault=null;opened=null;
+
+    opened=new TrialStore(filename,()=>TIME+1000);
+    new PlayClaimLedger(opened); // schema additive/migration-safe
+    vault=new PlayReceiptVault({store:opened,key:KEY});
+    assert.equal(vault.unlock({tokenHash:hashValue(TOKEN),
+      userId:user.id,productId:'basic_lifetime'}),TOKEN);
+    const wrong=new PlayReceiptVault({store:opened,key:Buffer.alloc(32,0x33)});
+    assert.throws(()=>wrong.unlock({tokenHash:hashValue(TOKEN),
+      userId:user.id,productId:'basic_lifetime'}));
+    wrong.dispose();
+  }finally{
+    if(vault)vault.dispose();
+    if(opened)opened.close();
+    await rm(dir,{recursive:true,force:true});
+  }
+});

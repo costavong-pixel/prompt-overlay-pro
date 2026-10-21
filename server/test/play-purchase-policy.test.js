@@ -113,3 +113,35 @@ test('nothing client-only can bypass server receipt verification',()=>{
   assert.equal(evaluateOneTime({isPurchased:true,productId:'pro_lifetime'},'pro_lifetime',bound).approved,false);
   assert.equal(evaluateMonthly({subscriptionState:'SUBSCRIPTION_STATE_ACTIVE'},NOW,bound).approved,false);
 });
+
+test('configured one-time Buy options cannot be replaced by a rental, preorder or wrong offer',()=>{
+  for(const [sku,expected] of [
+    ['basic_lifetime','basic-buy'],
+    ['pro_lifetime','pro-buy']
+  ]){
+    const ok=lifetime(sku);
+    ok.productLineItem[0].productOfferDetails.purchaseOptionId=expected;
+    assert.equal(evaluateOneTime(ok,sku,bound).approved,true);
+    const wrong=structuredClone(ok);
+    wrong.productLineItem[0].productOfferDetails.purchaseOptionId='wrong-buy';
+    assert.equal(evaluateOneTime(wrong,sku,bound).reason,'PURCHASE_OPTION_MISMATCH');
+    const rental=structuredClone(ok);
+    rental.productLineItem[0].productOfferDetails.rentOfferDetails={};
+    assert.equal(evaluateOneTime(rental,sku,bound).reason,'NON_LIFETIME_PURCHASE');
+    const preorder=structuredClone(ok);
+    preorder.productLineItem[0].productOfferDetails.preorderOfferDetails={};
+    assert.equal(evaluateOneTime(preorder,sku,bound).reason,'NON_LIFETIME_PURCHASE');
+  }
+});
+
+test('only regular monthly auto-renewing base plan is eligible',()=>{
+  const ok=monthly();
+  ok.lineItems[0].offerDetails={basePlanId:'monthly'};
+  assert.equal(evaluateMonthly(ok,NOW,bound).approved,true);
+  const prepaid=structuredClone(ok);
+  prepaid.lineItems[0].prepaidPlan={allowExtendAfterTime:'never'};
+  assert.equal(evaluateMonthly(prepaid,NOW,bound).reason,'PREPAID_NOT_SUPPORTED');
+  const wrong=structuredClone(ok);
+  wrong.lineItems[0].offerDetails.basePlanId='annual';
+  assert.equal(evaluateMonthly(wrong,NOW,bound).reason,'BASE_PLAN_MISMATCH');
+});

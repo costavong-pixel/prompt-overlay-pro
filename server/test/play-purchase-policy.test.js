@@ -138,6 +138,9 @@ test('only regular monthly auto-renewing base plan is eligible',()=>{
   const ok=monthly();
   ok.lineItems[0].offerDetails={basePlanId:'monthly'};
   assert.equal(evaluateMonthly(ok,NOW,bound).approved,true);
+  const missing=structuredClone(ok);
+  delete missing.lineItems[0].autoRenewingPlan;
+  assert.equal(evaluateMonthly(missing,NOW,bound).reason,'AUTO_RENEWING_PLAN_REQUIRED');
   const prepaid=structuredClone(ok);
   prepaid.lineItems[0].prepaidPlan={allowExtendAfterTime:'never'};
   assert.equal(evaluateMonthly(prepaid,NOW,bound).reason,'PREPAID_NOT_SUPPORTED');

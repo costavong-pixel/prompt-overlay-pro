@@ -8,7 +8,7 @@ import {PlayClaimLedger} from '../src/play-claim-ledger.js';
 import {PlayReceiptVault,loadPlayReceiptKey} from '../src/play-receipt-vault.js';
 import {GooglePlayReceiptReader} from '../src/google-play-receipts.js';
 import {PlayPurchaseService} from '../src/play-purchase-service.js';
-import {expectedObfuscatedAccountId,evaluateOneTime} from '../src/play-purchase-policy.js';
+import {expectedObfuscatedAccountId,evaluateOneTime,evaluateMonthly} from '../src/play-purchase-policy.js';
 
 const TIME=2_100_000_000_000;
 const TOKEN='server-only-subscriber-receipt-00000001';
@@ -141,4 +141,32 @@ test('protected file loader accepts only private base64 32-byte key',async()=>{
     await writeFile(keyFile,'not-a-key');
     await assert.rejects(()=>loadPlayReceiptKey(keyFile),/Invalid/);
   }finally{await rm(directory,{recursive:true,force:true});}
+});
+
+test('held subscription token remains decryptable ONLY through privileged reconciliation path',()=>{
+  const f=setup();
+  try{
+    const token='monthly-recheck-token-000000001';
+    const owner=expectedObfuscatedAccountId(f.alice.id,hashValue);
+    const decision=evaluateMonthly({
+      subscriptionState:'SUBSCRIPTION_STATE_ACTIVE',
+      lineItems:[{productId:'pro_monthly',expiryTime:new Date(TIME+86400000).toISOString(),
+        offerDetails:{basePlanId:'monthly'}}],
+      externalAccountIdentifiers:{obfuscatedExternalAccountId:owner},
+      acknowledgementState:'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED'
+    },TIME,owner);
+    assert.equal(f.ledger.verifiedClaim({user:f.alice,token,
+      serverDecision:decision}).saved,true);
+    const recorded=f.vault.remember({token,userId:f.alice.id,productId:'pro_monthly'});
+    f.ledger.ingestVoided({purchaseToken:token,
+      orderId:'GPA.1111-2222-3333-44444..1',voidedTimeMillis:String(TIME-1000)});
+    assert.equal(f.vault.candidates().length,0);
+    assert.throws(()=>f.vault.unlock({tokenHash:recorded.tokenHash,
+      userId:f.alice.id,productId:'pro_monthly'}),/No active encrypted receipt/);
+    assert.equal(f.vault.unlockForReconciliation({tokenHash:recorded.tokenHash,
+      userId:f.alice.id,productId:'pro_monthly'}),token,
+      'Only a trusted future backend worker may requery the held token');
+    assert.throws(()=>f.vault.unlockForReconciliation({tokenHash:recorded.tokenHash,
+      userId:f.bob.id,productId:'pro_monthly'}),/No active encrypted receipt/);
+  }finally{f.close();}
 });

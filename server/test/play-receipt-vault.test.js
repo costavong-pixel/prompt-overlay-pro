@@ -151,7 +151,7 @@ test('held subscription token remains decryptable ONLY through privileged reconc
     const decision=evaluateMonthly({
       subscriptionState:'SUBSCRIPTION_STATE_ACTIVE',
       lineItems:[{productId:'pro_monthly',expiryTime:new Date(TIME+86400000).toISOString(),
-        offerDetails:{basePlanId:'monthly'}}],
+        offerDetails:{basePlanId:'monthly'},autoRenewingPlan:{autoRenewEnabled:true}}],
       externalAccountIdentifiers:{obfuscatedExternalAccountId:owner},
       acknowledgementState:'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED'
     },TIME,owner);

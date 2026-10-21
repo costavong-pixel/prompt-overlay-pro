@@ -40,6 +40,10 @@ export class PlayPurchaseService {
     // actual identity and current purchase state. No client-provided receipt.
     try{GooglePlayReceiptReader.requireValidToken(purchaseToken);}
     catch{return {verified:false,reason:'INVALID_TOKEN'};}
+    // A voided/refunded purchase cannot be resurrected by a valid older
+    // Google receipt or a retry from the Android purchase callback.
+    const blocked=this.ledger.blockedReason(purchaseToken);
+    if(blocked)return {verified:false,reason:blocked};
     const owner=this.billingIdentity(user);
     let decision;
     try{
@@ -54,6 +58,9 @@ export class PlayPurchaseService {
     }
     if(!mayGrantFromGoogleReceipt(decision))
       return {verified:false,reason:decision?.reason||'REJECTED'};
+    // Re-check because the void reconciler can run during the Google API call.
+    const blockAfterGoogle=this.ledger.blockedReason(purchaseToken);
+    if(blockAfterGoogle)return {verified:false,reason:blockAfterGoogle};
 
     // Acknowledge from the authenticated server, not Android. A failed
     // acknowledgement returns a retriable response but never silently grants.

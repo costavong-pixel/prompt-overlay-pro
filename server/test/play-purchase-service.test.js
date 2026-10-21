@@ -39,7 +39,7 @@ function fixture(nowFn=()=>TS){
   const monthly=(user,state='SUBSCRIPTION_STATE_ACTIVE')=>({
     subscriptionState:state,acknowledgementState:'ACKNOWLEDGEMENT_STATE_PENDING',
     externalAccountIdentifiers:{obfuscatedExternalAccountId:owner(user)},
-    lineItems:[{productId:'pro_monthly',expiryTime:new Date(TS+2*DAY).toISOString()}]
+    lineItems:[{productId:'pro_monthly',expiryTime:new Date(TS+2*DAY).toISOString(),autoRenewingPlan:{autoRenewEnabled:true},offerDetails:{basePlanId:'monthly'}}]
   });
   return {store,bob,alice,receipts,calls,service,owner,inapp,monthly,close:()=>store.close()};
 }

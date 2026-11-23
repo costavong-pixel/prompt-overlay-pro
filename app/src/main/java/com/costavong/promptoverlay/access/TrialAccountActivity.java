@@ -90,7 +90,7 @@ public final class TrialAccountActivity extends Activity {
         if(Build.VERSION.SDK_INT>=35)scroll.requestApplyInsets();
         add(content,button("Back",CARD,this::finish));
         add(content,text("90 DAYS FREE · ALL FEATURES",24,true));
-        add(content,text("One 90-day trial includes every currently available Basic and Pro feature: teleprompter, editing, captions and export.",15,false));
+        add(content,text("The 90-day trial covers the current teleprompter features in this Basic development branch.",15,false));
         add(content,text("No credit card required. No automatic subscription or charge. Your trial begins when Google sign-in is verified.",13,false));
         add(content,text("Google sign-in keeps your original 90-day deadline after reinstalling the app.",13,false));
 
@@ -119,9 +119,9 @@ public final class TrialAccountActivity extends Activity {
         add(content,text("Basic Lifetime · "+TrialOffer.BASIC_TARGET_USD+" once",15,true));
         add(content,text("Keep the Basic teleprompter features forever.",12,false));
         add(content,text("Pro Monthly · "+TrialOffer.PRO_MONTHLY_TARGET_USD+" / month",15,true));
-        add(content,text("Keep all current Pro features while subscribed.",12,false));
+        add(content,text("No paid feature tier is enabled in this Basic development branch.",12,false));
         add(content,text("Pro Lifetime · "+TrialOffer.PRO_LIFETIME_TARGET_USD+" once",15,true));
-        add(content,text("Keep all current non-AI Pro features permanently.",12,false));
+        add(content,text("No paid feature tier is enabled in this Basic development branch.",12,false));
         add(content,text("We will choose 500 users for free Pro Lifetime licenses based on detailed private product feedback, independently of Google Play reviews.",12,false));
         add(content,text("Target USD prices only; Google Play will show actual local prices when checkout becomes available.",12,false));
         add(content,text("TEST BUILD: this screen cannot activate a real trial until the owner connects Google OAuth and the HTTPS trial service. Purchases and feature locks are not enabled. No payment is collected.",12,false));

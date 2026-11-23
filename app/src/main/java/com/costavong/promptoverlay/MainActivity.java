@@ -112,14 +112,8 @@ public class MainActivity extends Activity {
         configureSystemBars();
         setContentView(createScreen());
         refreshAccessUi();
-        if (!BuildConfig.PRO_TEST || getIntent().getBooleanExtra("open_basic", false)) {
-            requestNotificationPermissionIfNeeded();
-        }
+        requestNotificationPermissionIfNeeded();
         showTrialExpiryIfRequested(getIntent());
-        if (BuildConfig.PRO_TEST && !getIntent().getBooleanExtra("open_basic", false)) {
-            startActivity(new android.content.Intent(this, com.costavong.promptoverlay.pro.ProActivity.class));
-            finish();
-        }
     }
 
     @Override
@@ -287,14 +281,14 @@ public class MainActivity extends Activity {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        TextView roadmap = text("Roadmap", 12, Color.rgb(149, 221, 194));
+        TextView roadmap = text("About", 12, Color.rgb(149, 221, 194));
         roadmap.setGravity(Gravity.CENTER_VERTICAL);
         roadmap.setPadding(dp(6), dp(8), 0, dp(8));
         roadmap.setMinHeight(dp(40));
         roadmap.setPaintFlags(roadmap.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         roadmap.setClickable(true);
         roadmap.setFocusable(true);
-        roadmap.setContentDescription("See planned features");
+        roadmap.setContentDescription("About Prompt Overlay Basic");
         roadmap.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -339,14 +333,10 @@ public class MainActivity extends Activity {
         trialStatusParams.topMargin = dp(4);
         scriptContent.addView(trialStatus, trialStatusParams);
 
-        unlockButton = smallSecondaryButton("Test build · not for sale");
-        unlockButton.setContentDescription("This test build has no purchase flow");
-        unlockButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showUnlockDialog(false);
-            }
-        });
+        unlockButton = smallSecondaryButton("Billing preview · test build only");
+        unlockButton.setContentDescription("Billing is available only as a test preview; checkout is disabled");
+        unlockButton.setOnClickListener(view -> startActivity(new Intent(
+                MainActivity.this, com.costavong.promptoverlay.access.PlansActivity.class)));
         LinearLayout.LayoutParams unlockButtonParams = matchWidth();
         unlockButtonParams.topMargin = dp(8);
         scriptContent.addView(unlockButton, unlockButtonParams);
@@ -1037,7 +1027,7 @@ public class MainActivity extends Activity {
                 "Test build · unlimited prompt time · no purchase flow"));
         trialStatus.setTextColor(Color.rgb(149, 221, 194));
         trialStatus.setVisibility(TrialAccess.isTestBuild() ? View.VISIBLE : View.GONE);
-        unlockButton.setVisibility(View.GONE);
+        unlockButton.setVisibility(TrialAccess.isTestBuild() ? View.VISIBLE : View.GONE);
     }
 
     private void showTrialExpiryIfRequested(Intent intent) {
@@ -1061,10 +1051,9 @@ public class MainActivity extends Activity {
     }
 
     private void showPrivacy() {
-        if (BuildConfig.PRO_TEST) { com.costavong.promptoverlay.pro.ProPrivacy.show(this); return; }
         new AlertDialog.Builder(this)
                 .setTitle("Privacy")
-                .setMessage("Your scripts, titles, tags, and settings stay on this phone. A photo or document you choose to import is processed on-device and is not uploaded or retained as a file. Prompt Overlay does not use your camera, microphone, or account. The optional browser remote communicates only across your local Wi-Fi or hotspot.")
+                .setMessage("Your scripts, titles, tags, and settings stay on this phone. A photo or document you choose to import is processed on-device and is not uploaded or retained as a file. The teleprompter does not access your camera or microphone. Test builds include optional Google sign-in and trial-status checks; checkout is disabled. The browser remote communicates only across your local Wi-Fi or hotspot.")
                 .setPositiveButton("Close", null)
                 .show();
     }
@@ -1086,8 +1075,8 @@ public class MainActivity extends Activity {
 
     private void showRoadmap() {
         new AlertDialog.Builder(this)
-                .setTitle("Roadmap")
-                .setMessage("This release includes:\n• saved scripts with search, tags, archive, and delete\n• bold, italic, underline, and four highlight colours\n• movable, resizable prompt with independent Height and Width overlay\n• text size, margins, spacing, alignment, countdown, and silent repeat\n• mirrored full-screen reader, imports, and remote controls\n\nPlanned later: AI script assistance, captions, and video editing. The app intentionally keeps camera recording in the camera app you choose.")
+                .setTitle("About Prompt Overlay")
+                .setMessage("One teleprompter for business presentations and sales, teachers and trainers, and content creators. Use the floating overlay or mirrored reader, adjust scrolling and appearance, manage scripts and imports, and control it with a Bluetooth or local Wi-Fi remote. Record with the camera app you choose.")
                 .setPositiveButton("Close", null)
                 .show();
     }

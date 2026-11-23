@@ -28,7 +28,7 @@ android {
         applicationId "com.costavong.promptoverlay"
         minSdk 26
         targetSdk 36
-        // Trial identity prototype only. Production still excludes Pro editor.
+        // Basic teleprompter restore branch. Checkout remains disabled.
         versionCode 58
         versionName "2.0.0-billing-console-internal"
         buildConfigField "String", "TRIAL_WEB_CLIENT_ID", "\"${trialOauthId}\""
@@ -36,8 +36,6 @@ android {
         buildConfigField "boolean", "PRO_TEST", "false"
         resValue "string", "app_name", "Prompt Overlay"
         manifestPlaceholders = [proEnabled: "false"]
-        testInstrumentationRunner "com.costavong.promptoverlay.pro.ProSmokeRunner"
-
     }
 
     compileOptions {
@@ -112,16 +110,11 @@ dependencies {
     // Bundled, on-device Latin OCR: works without a network connection and is
     // available immediately after installation.
     implementation "com.google.mlkit:text-recognition:16.0.1"
-    implementation "androidx.media3:media3-common:1.11.1"
-    implementation "androidx.media3:media3-exoplayer:1.11.1"
-    implementation "androidx.media3:media3-ui:1.11.1"
     implementation "androidx.core:core:1.17.0"
     implementation "androidx.credentials:credentials:1.6.0"
     implementation "androidx.credentials:credentials-play-services-auth:1.6.0"
     implementation "com.google.android.libraries.identity.googleid:googleid:1.2.1"
     // Purchase server validation is not yet enabled; do not launch checkout.
     implementation "com.android.billingclient:billing:9.1.0"
-    implementation "com.alphacephei:vosk-android:0.3.75@aar"
-    implementation "net.java.dev.jna:jna:5.19.1@aar"
     testImplementation "junit:junit:4.13.2"
 }

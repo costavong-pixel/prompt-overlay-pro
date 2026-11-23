@@ -27,10 +27,9 @@ import java.util.concurrent.Executors;
 /**
  * Android-first, no-payment preview of trial and three paid plans.
  *
- * All current editing actions remain available in the separate alpha test
- * APK for usability testing. This screen NEVER starts Google Play checkout,
- * overrides an entitlement or claims that a trial was activated without the
- * authenticated HTTPS backend.
+ * This Basic branch keeps plan metadata and a QA-only preview. It never
+ * starts Google Play checkout, overrides an entitlement, or claims a trial
+ * was activated without the authenticated HTTPS backend.
  */
 public final class PlansActivity extends Activity {
     private static final int BG=0xff11151e;
@@ -129,8 +128,10 @@ public final class PlansActivity extends Activity {
         hero.setBackground(heroBackground());
         add(hero,label("NO CARD · NO AUTOMATIC CHARGE",11,TEAL,true),9);
         add(hero,label("90 DAYS FREE",27,TEXT,true),8);
-        add(hero,label("Try every current feature for 90 days — teleprompter, video editor, captions and export.",
+        add(hero,label("Try the current Prompt Overlay teleprompter features for 90 days.",
             15,TEXT,false),12);
+        add(hero,label("This development preview has no paid features or purchase flow.",
+            12,MUTED,false),12);
         add(hero,label("The 90 days start after your first verified Google sign-in, not when you install.",
             12,MUTED,false),12);
 
@@ -272,14 +273,14 @@ public final class PlansActivity extends Activity {
     private String planSummary(PlanCatalog.Entry entry){
         switch(entry.tier){
             case BASIC_LIFETIME:return "All Basic teleprompter features forever.";
-            case PRO_MONTHLY:return "All current Pro tools while subscribed.";
-            default:return "All current non-AI Pro tools permanently.";
+            case PRO_MONTHLY:return "No paid feature tier is enabled in this Basic development branch.";
+            default:return "No paid feature tier is enabled in this Basic development branch.";
         }
     }
     private void showDetails(PlanCatalog.Entry entry){
         String included=entry.tier==PlanCatalog.Tier.BASIC_LIFETIME
             ?"Basic includes scripts, formatting, imports, overlay controls and local remote features."
-            :"Pro includes Basic plus the local four-track editor, trim/split, captions, graphics, music and up to 1080p export.";
+            :"No paid feature tier is enabled in this Basic restore branch. Checkout and paid feature gating are disabled.";
         StringBuilder message=new StringBuilder(t(included));
         if(entry.tier==PlanCatalog.Tier.PRO_LIFETIME)
             message.append("\n\n").append(t(

@@ -1,33 +1,30 @@
-# Approved feature scope
+# Prompt Overlay Basic scope
 
-## Approved Pro scope
+This branch keeps one teleprompter engine for three audiences:
 
-The approved editor scope:
-1. Local/basic automatic captions. Correct wording and timing manually. No AI credits; cloud AI captions belong to a later monthly plan.
-2. Keep the user's preferred camera. Import or share finished videos into the editor; do not add an in-app camera.
-3. Simplified four logical tracks: sequential video/B-roll; logos/stills; text/captions; original sound plus one imported music track. All manual editing runs locally.
-4. Manual crop/resize with original, 9:16, 16:9, 1:1 and 4:5 output formats. Share using Android's share sheet, including X where its app supports sharing; no paid posting API.
-5. Logo upload, size, position, opacity and duration; remember the last logo.
-6. One imported music track with trim, timeline positioning, separate music/original volume, mute original, and fade in/out.
-7. Plain text and titles with simple styling. No template catalogue or generated titles.
-8. Direct cuts and adjustable crossfades.
-9. Experimental green screen, retained only if device testing produces acceptable results. Otherwise defer to monthly Pro.
-10. Brightness, contrast, saturation and temperature controls.
-11. 720p/1080p MP4/H.264 exports, no product watermark and no artificial video length cap. No 4K in Lifetime Pro.
-12. Trim, split, delete, reorder and join. One timeline governs embedded audio and video, with a mandatory real-device synchronization prototype before release approval.
-13. 0.5x, 1x, 1.5x and 2x speed with natural audio pitch and recalculated caption/overlay timing.
+1. Business presentations and sales
+2. Teachers and trainers
+3. Content creators
 
-Basic teleprompter features remain included. Arabic automatic captions are not included; manual Arabic captions are supported. Cloud AI features, subscriptions and 4K are future work.
+These are use cases for the same app, not separate products.
 
-## Alpha 8 Editor help
+## Retained Basic functionality
 
-- Add small, accessible “i” icons beside Rename, Import video, Play clip, Clips, Captions, Graphics, Music, Format, Edited preview, and Export. Each opens a short explanation translated into English, Spanish, French, and Arabic.
-- Phone test icon placement, dialog readability, and each explanation. Source update only; no APK has been built.
+- Floating overlay reader with automatic scrolling and adjustable speed.
+- Prompt delay and repeat controls.
+- Script library, including saved scripts, search, tags, archive, and delete.
+- Script import from supported text, document, photo/OCR, and selected Google Drive sources.
+- Font family, size, colour, background transparency, overlay size and position, margins, line spacing, alignment, and formatting controls.
+- Mirrored full-screen reader.
+- Bluetooth remote controls and local Wi-Fi browser remote.
+- Existing English, Spanish, French, and Arabic interface support.
 
-## Alpha 7 Graphics help\n\n- Add a small, accessible “i” beside Graphics. It explains how to add a title/logo/image, edit its timing and appearance, and choose a green-screen replacement background. The explanation is translated into English, Spanish, French, and Arabic.\n- Phone test the icon, dialog readability, and translations. Source update only; no APK has been built.\n\n## Alpha 6 UX decision
+The user's selected camera app records video. Prompt Overlay does not add camera or microphone capture.
 
-- Remove the automatic first-launch tutorial and the persistent “How it works” entry.
-- Make the Pro home a direct choice between opening the teleprompter and editing a video; keep saved projects below those actions.
-- Wrap long project names to two lines and truncate cleanly when needed.
-- Add a persistent “Rate app” action and one respectful prompt after a video is successfully saved. The prompt appears once and offers “Rate us” and “Not now.”
-- Phone test the home layout, long names, translations, saved-video flow and Play Store rating link. This source update is not a built or tested APK.
+## Excluded from this branch
+
+Video editing, export, timelines, captions, effects, rendering, speech packs, and editor-specific dependencies are removed. The editor source is retained on the separate archive branch archive/video-editor-pre-basic-restore-20261122.
+
+## Billing boundary
+
+Billing and trial source/configuration remain available for review. Checkout remains disabled (PlanCatalog.REAL_CHECKOUT_ENABLED=false), release builds retain proEnabled=false, and the plan screen is reachable only in test builds. No production billing, Google Cloud, Play Console, or VPS configuration is changed.

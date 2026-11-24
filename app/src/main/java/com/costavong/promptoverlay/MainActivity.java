@@ -24,7 +24,6 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowInsets;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -37,6 +36,12 @@ import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
@@ -110,7 +115,9 @@ public class MainActivity extends Activity {
         preferences = getSharedPreferences("prompt_overlay", MODE_PRIVATE);
         textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
         configureSystemBars();
-        setContentView(createScreen());
+        View screen = createScreen();
+        setContentView(screen);
+        ViewCompat.requestApplyInsets(screen);
         refreshAccessUi();
         requestNotificationPermissionIfNeeded();
         showTrialExpiryIfRequested(getIntent());
@@ -187,8 +194,8 @@ public class MainActivity extends Activity {
         scrollView.setBackgroundColor(Color.TRANSPARENT);
 
         final int horizontalPadding = dp(18);
-        final int topPadding = dp(22);
         final int baseBottomPadding = dp(24);
+        final int actionFooterHeight = dp(64);
         final LinearLayout formatRow = new LinearLayout(this);
         formatToolbar = new HorizontalScrollView(this);
         formatToolbar.setHorizontalScrollBarEnabled(false);
@@ -199,35 +206,7 @@ public class MainActivity extends Activity {
                 HorizontalScrollView.LayoutParams.MATCH_PARENT));
         final LinearLayout column = new LinearLayout(this);
         column.setOrientation(LinearLayout.VERTICAL);
-        column.setPadding(horizontalPadding, topPadding, horizontalPadding, baseBottomPadding);
-        scrollView.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
-            @Override
-            public WindowInsets onApplyWindowInsets(View view, WindowInsets insets) {
-                int statusBarHeight;
-                int navigationBarHeight;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    android.graphics.Insets systemBars = insets.getInsets(
-                            WindowInsets.Type.systemBars());
-                    statusBarHeight = systemBars.top;
-                    navigationBarHeight = systemBars.bottom;
-                } else {
-                    statusBarHeight = insets.getSystemWindowInsetTop();
-                    navigationBarHeight = insets.getSystemWindowInsetBottom();
-                }
-                // Some Samsung edge-to-edge configurations report a zero
-                // bottom inset even while the gesture/navigation area is
-                // visible. The fallback keeps a comfortable touch target.
-                int safeTop = Math.max(statusBarHeight, dp(18));
-                int safeBottom = Math.max(navigationBarHeight, dp(72));
-                scrollView.setPadding(0, safeTop, 0, safeBottom);
-                column.setPadding(
-                        horizontalPadding,
-                        0,
-                        horizontalPadding,
-                        baseBottomPadding);
-                return insets;
-            }
-        });
+        column.setPadding(horizontalPadding, dp(22), horizontalPadding, baseBottomPadding);
         scrollView.addView(column, new ScrollView.LayoutParams(
                 ScrollView.LayoutParams.MATCH_PARENT,
                 ScrollView.LayoutParams.WRAP_CONTENT));
@@ -361,20 +340,43 @@ public class MainActivity extends Activity {
 
         LinearLayout editorActionRow = new LinearLayout(this);
         editorActionRow.setOrientation(LinearLayout.HORIZONTAL);
+        editorActionRow.setGravity(Gravity.CENTER_VERTICAL);
+        editorActionRow.setBackgroundColor(SCREEN_BACKGROUND);
+        editorActionRow.setPadding(horizontalPadding, dp(8), horizontalPadding, dp(8));
         Button newScriptButton = smallSecondaryButton("Save & new");
         newScriptButton.setContentDescription("Save this script and start another script");
         newScriptButton.setOnClickListener(view -> startNewScript());
-        editorActionRow.addView(newScriptButton, new LinearLayout.LayoutParams(0, dp(44), 1f));
+        editorActionRow.addView(newScriptButton, new LinearLayout.LayoutParams(0, dp(48), 1f));
 
         Button saveScriptButton = smallSecondaryButton("Save changes");
         saveScriptButton.setContentDescription("Save changes to the current script");
         saveScriptButton.setOnClickListener(view -> saveCurrentScript(true));
-        LinearLayout.LayoutParams saveScriptButtonParams = new LinearLayout.LayoutParams(0, dp(44), 1f);
-        saveScriptButtonParams.leftMargin = dp(8);
+        LinearLayout.LayoutParams saveScriptButtonParams = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        saveScriptButtonParams.setMarginStart(dp(8));
         editorActionRow.addView(saveScriptButton, saveScriptButtonParams);
-        LinearLayout.LayoutParams editorActionParams = matchWidth();
-        editorActionParams.topMargin = dp(12);
-        scriptContent.addView(editorActionRow, editorActionParams);
+        FrameLayout.LayoutParams editorActionParams = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM);
+        screen.addView(editorActionRow, editorActionParams);
+
+        ViewCompat.setOnApplyWindowInsetsListener(screen, (view, windowInsets) -> {
+            Insets system = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            Insets gestures = windowInsets.getInsets(WindowInsetsCompat.Type.systemGestures());
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            int safeLeft = Math.max(system.left, gestures.left);
+            int safeRight = Math.max(system.right, gestures.right);
+            int systemBottom = Math.max(system.bottom, gestures.bottom);
+            int safeBottom = Math.max(systemBottom, ime.bottom);
+
+            scrollView.setPadding(safeLeft, Math.max(system.top, dp(18)), safeRight,
+                    safeBottom + actionFooterHeight);
+            column.setPadding(horizontalPadding, 0, horizontalPadding, baseBottomPadding);
+            editorActionRow.setPadding(horizontalPadding + safeLeft, dp(8),
+                    horizontalPadding + safeRight, dp(8) + safeBottom);
+            return windowInsets;
+        });
 
         TextView editorActionHint = text(
                 "Save changes updates this script. Save & new keeps it and starts another one.",
@@ -1531,17 +1533,16 @@ public class MainActivity extends Activity {
     private void configureSystemBars() {
         getWindow().setStatusBarColor(SCREEN_BACKGROUND);
         getWindow().setNavigationBarColor(SCREEN_BACKGROUND);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        WindowInsetsControllerCompat bars = WindowCompat.getInsetsController(
+                getWindow(), getWindow().getDecorView());
+        bars.setAppearanceLightStatusBars(false);
+        bars.setAppearanceLightNavigationBars(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             getWindow().setNavigationBarDividerColor(SCREEN_BACKGROUND);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             getWindow().setNavigationBarContrastEnforced(false);
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            int systemUiFlags = getWindow().getDecorView().getSystemUiVisibility();
-            systemUiFlags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-            systemUiFlags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
-            getWindow().getDecorView().setSystemUiVisibility(systemUiFlags);
         }
     }
 

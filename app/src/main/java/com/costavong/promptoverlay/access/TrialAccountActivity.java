@@ -62,6 +62,7 @@ public final class TrialAccountActivity extends Activity {
         t.setTextSize(size);if(bold)t.setTypeface(null,Typeface.BOLD);
         t.setPadding(0,dp(5),0,dp(5));return t;
     }
+    private String t(String english){return PlanUiText.t(this,english);}
     private Button button(String label,int background,Runnable action){
         Button b=new Button(this);b.setText(label);b.setTextSize(14);b.setAllCaps(false);
         b.setTextColor(Color.WHITE);b.setMinHeight(dp(48));b.setMinimumHeight(dp(48));
@@ -115,15 +116,14 @@ public final class TrialAccountActivity extends Activity {
         refresh=button("Refresh access",CARD,this::refreshEntitlements);add(content,refresh);
         signOut=button("Sign out",CARD,this::logout);add(content,signOut);
         add(content,text("AFTER YOUR 90 DAYS",17,true));
-        add(content,text("The trial ends automatically with no charge. Only a Pro Monthly subscription you actively purchase would renew until canceled:",13,false));
-        add(content,text("Basic Lifetime · "+TrialOffer.BASIC_TARGET_USD+" once",15,true));
-        add(content,text("Keep the Basic teleprompter features forever.",12,false));
-        add(content,text("Pro Monthly · "+TrialOffer.PRO_MONTHLY_TARGET_USD+" / month",15,true));
-        add(content,text("No paid feature tier is enabled in this Basic development branch.",12,false));
-        add(content,text("Pro Lifetime · "+TrialOffer.PRO_LIFETIME_TARGET_USD+" once",15,true));
-        add(content,text("No paid feature tier is enabled in this Basic development branch.",12,false));
+        add(content,text(t("The trial ends with no charge. Basic Lifetime is shown below as a development preview only; no offer is available to buy."),13,false));
+        add(content,text(t("Basic Lifetime")+" · "+PlanCardCopy.previewPriceLabel(
+            PlanCatalog.byId(AccessPolicy.BASIC_PRODUCT))+" · "+
+            t("One-time purchase · no renewal"),15,true));
+        add(content,text(t(PlanCardCopy.previewAvailabilityLabel()),12,false));
+        add(content,text(t("No checkout or payment is enabled."),12,false));
+        add(content,text(t("All Basic teleprompter features forever."),12,false));
         add(content,text("We will choose 500 users for free Pro Lifetime licenses based on detailed private product feedback, independently of Google Play reviews.",12,false));
-        add(content,text("Target USD prices only; Google Play will show actual local prices when checkout becomes available.",12,false));
         add(content,text("TEST BUILD: this screen cannot activate a real trial until the owner connects Google OAuth and the HTTPS trial service. Purchases and feature locks are not enabled. No payment is collected.",12,false));
         session=vault.restore();
         if(isIsolatedBillingPreview()){
@@ -257,7 +257,7 @@ public final class TrialAccountActivity extends Activity {
             case TRIAL:
                 long day=24L*60*60*1000;
                 long days=(decision.trialRemainingMs+day-1)/day;
-                showStatus("90-day Pro trial ACTIVE. Approximately "+days+" day(s) remaining.");
+                showStatus("90-day free trial ACTIVE. Approximately "+days+" day(s) remaining.");
                 break;
             case PRO_LIFETIME:case FEEDBACK_AWARD_PRO_LIFETIME:
                 showStatus("Pro Lifetime access recorded on server");break;
@@ -266,7 +266,9 @@ public final class TrialAccountActivity extends Activity {
             case LEGACY_PAID_BASIC:case BASIC_LIFETIME:
                 showStatus("Basic Lifetime access recorded on server");break;
             case TRIAL_ENDED:
-                showStatus("Your 90-day free trial has ended. Choose Basic Lifetime, Pro Monthly, or Pro Lifetime when checkout launches. No automatic charges.");break;
+                showStatus(t("Trial completed. Your projects remain on your phone.")+" "+
+                    t("Basic Lifetime")+" · US$5.99 · "+
+                    t(PlanCardCopy.previewAvailabilityLabel()));break;
             default: showStatus("Access verification required; no entitlement granted");
         }
     }

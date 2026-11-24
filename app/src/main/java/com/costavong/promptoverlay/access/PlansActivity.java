@@ -1,7 +1,6 @@
 package com.costavong.promptoverlay.access;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -19,13 +18,11 @@ import android.widget.TextView;
 import com.costavong.promptoverlay.AppLanguage;
 import com.costavong.promptoverlay.BuildConfig;
 import com.costavong.promptoverlay.pro.ProFeedbackActivity;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Android-first, no-payment preview of trial and three paid plans.
+ * Android-first, no-payment preview of the trial and approved Basic plan.
  *
  * This Basic branch keeps plan metadata and a QA-only preview. It never
  * starts Google Play checkout, overrides an entitlement, or claims a trial
@@ -40,10 +37,8 @@ public final class PlansActivity extends Activity {
     private static final int MUTED=0xffc4d0de;
 
     private final ExecutorService background=Executors.newSingleThreadExecutor();
-    private final Map<String,TextView> priceLabels=new HashMap<>();
-    private PlayPriceCatalog playCatalog;
     private PlayPurchaseRestoreProbe restoreProbe;
-    private TextView accessLabel, catalogLabel, restoreStatus;
+    private TextView accessLabel, restoreStatus;
     private boolean stopped;
 
     private int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
@@ -130,7 +125,7 @@ public final class PlansActivity extends Activity {
         add(hero,label("90 DAYS FREE",27,TEXT,true),8);
         add(hero,label("Try the current Prompt Overlay teleprompter features for 90 days.",
             15,TEXT,false),12);
-        add(hero,label("This development preview has no paid features or purchase flow.",
+        add(hero,label("This development preview does not enable paid features or purchases.",
             12,MUTED,false),12);
         add(hero,label("The 90 days start after your first verified Google sign-in, not when you install.",
             12,MUTED,false),12);
@@ -142,10 +137,10 @@ public final class PlansActivity extends Activity {
         add(root,hero,18);
 
         add(root,label("AFTER YOUR FREE TRIAL",18,TEXT,true),7);
-        add(root,label("Choose a plan only if you want to continue. Nothing is charged when the free trial ends.",
+        add(root,label("The trial ends with no charge. Basic Lifetime is shown below as a development preview only; no offer is available to buy.",
             13,MUTED,false),14);
 
-        for(PlanCatalog.Entry entry:PlanCatalog.options()){
+        for(PlanCatalog.Entry entry:PlanCatalog.previewDisplayOptions()){
             add(root,planCard(entry),11);
         }
 
@@ -154,14 +149,6 @@ public final class PlansActivity extends Activity {
         restoreStatus=label("No purchases have been checked. Real purchase restoration is not enabled.",
             12,TEAL,false);
         add(root,restoreStatus,13);
-
-        TextView pricesHelp=label(
-            "US target prices shown until live Google Play offers become available. Checkout is disabled.",
-            12,MUTED,false);
-        add(root,pricesHelp,8);
-        catalogLabel=label("Google Play pricing is not available for this test package.",
-            12,TEAL,false);
-        add(root,catalogLabel,18);
 
         LinearLayout feedback=column();
         feedback.setPadding(dp(16),dp(16),dp(16),dp(16));
@@ -176,24 +163,9 @@ public final class PlansActivity extends Activity {
         add(root,feedback,19);
 
         add(root,label("Development preview · no payments",12,TEAL,true),4);
-        add(root,label("Plans are not for sale in this test build.",12,MUTED,false),0);
+        add(root,label("No checkout or payment is enabled.",12,MUTED,false),0);
 
         updateAccountStatus();
-        playCatalog=new PlayPriceCatalog(this);
-        try{
-            playCatalog.fetch((prices,missing,connected)->{
-                for(Map.Entry<String,String> price:prices.entrySet()){
-                    TextView view=priceLabels.get(price.getKey());
-                    if(view!=null)view.setText(price.getValue());
-                }
-                catalogLabel.setText(
-                    prices.isEmpty()
-                        ?t("Google Play pricing is not available for this test package.")
-                        :t("Price from Google Play")+" · "+prices.size()+"/"+PlanCatalog.options().size());
-            });
-        }catch(RuntimeException e){
-            catalogLabel.setText(t("Google Play pricing is not available for this test package."));
-        }
     }
 
     private void checkPlayPurchases(){
@@ -228,29 +200,20 @@ public final class PlansActivity extends Activity {
         LinearLayout card=column();
         card.setBackground(bg(CARD,18));
         card.setPadding(dp(16),dp(16),dp(16),dp(15));
-        card.setContentDescription(t(planTitle(entry))+" · "+entry.targetUsd+" · "+
-            t(PlanCardCopy.cadenceLabel(entry))+" · "+t(planSummary(entry)));
-        card.setClickable(true);
-        card.setFocusable(true);
-        card.setOnClickListener(v->showDetails(entry));
 
-        // Keep the price and title in the header, but place long renewal
-        // terms on their own full-width line. Previously the monthly terms
-        // expanded the price column into the title on narrow Android phones.
-        // A weighted title can wrap safely in Spanish, French and Arabic.
+        // The US target price is static preview copy and never comes from Play.
         LinearLayout row=new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title=label(planTitle(entry),18,TEXT,true);
+        TextView title=label("Basic Lifetime",18,TEXT,true);
         LinearLayout.LayoutParams titleLayout=
             new LinearLayout.LayoutParams(0,-2,1);
         titleLayout.setMarginEnd(dp(12));
         row.addView(title,titleLayout);
 
-        TextView price=label(entry.targetUsd,20,TEAL,true);
+        TextView price=label(PlanCardCopy.previewPriceLabel(entry),20,TEAL,true);
         price.setGravity(Gravity.END|Gravity.CENTER_VERTICAL);
         price.setMaxLines(1);
-        priceLabels.put(entry.productId,price);
         row.addView(price,new LinearLayout.LayoutParams(-2,-2));
         add(card,row,4);
 
@@ -259,37 +222,10 @@ public final class PlansActivity extends Activity {
         cadence.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
         cadence.setMaxLines(3);
         add(card,cadence,10);
-        add(card,label(planSummary(entry),13,MUTED,false),10);
-        add(card,label("See included features",12,TEAL,true),0);
+        add(card,label(PlanCardCopy.previewAvailabilityLabel(),
+            12,TEAL,true),8);
+        add(card,label("All Basic teleprompter features forever.",13,MUTED,false),0);
         return card;
-    }
-    private String planTitle(PlanCatalog.Entry entry){
-        switch(entry.tier){
-            case BASIC_LIFETIME:return "Basic Lifetime";
-            case PRO_MONTHLY:return "Pro Monthly";
-            default:return "Pro Lifetime";
-        }
-    }
-    private String planSummary(PlanCatalog.Entry entry){
-        switch(entry.tier){
-            case BASIC_LIFETIME:return "All Basic teleprompter features forever.";
-            case PRO_MONTHLY:return "No paid feature tier is enabled in this Basic development branch.";
-            default:return "No paid feature tier is enabled in this Basic development branch.";
-        }
-    }
-    private void showDetails(PlanCatalog.Entry entry){
-        String included=entry.tier==PlanCatalog.Tier.BASIC_LIFETIME
-            ?"Basic includes scripts, formatting, imports, overlay controls and local remote features."
-            :"No paid feature tier is enabled in this Basic restore branch. Checkout and paid feature gating are disabled.";
-        StringBuilder message=new StringBuilder(t(included));
-        if(entry.tier==PlanCatalog.Tier.PRO_LIFETIME)
-            message.append("\n\n").append(t(
-                "Lifetime excludes future metered cloud AI services and credits."));
-        message.append("\n\n").append(t("Plans are not for sale in this test build."));
-        new AlertDialog.Builder(this)
-            .setTitle(t(planTitle(entry)))
-            .setMessage(message.toString())
-            .setPositiveButton(t("Close"),null).show();
     }
 
     @Override protected void onResume(){
@@ -347,7 +283,6 @@ public final class PlansActivity extends Activity {
 
     @Override protected void onDestroy(){
         stopped=true;
-        if(playCatalog!=null)playCatalog.close();
         if(restoreProbe!=null)restoreProbe.close();
         background.shutdownNow();
         super.onDestroy();

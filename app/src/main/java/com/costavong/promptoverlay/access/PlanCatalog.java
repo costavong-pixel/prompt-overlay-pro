@@ -53,6 +53,15 @@ public final class PlanCatalog {
 
     public static List<Entry> options(){ return OPTIONS; }
 
+    /**
+     * Paid product metadata stays in {@link #options()} for purchase history,
+     * entitlement restoration and Billing QA. Only the approved Basic plan is
+     * shown in the development pricing preview.
+     */
+    public static List<Entry> previewDisplayOptions(){
+        return Collections.singletonList(OPTIONS.get(0));
+    }
+
     public static Entry byId(String productId){
         for(Entry option:OPTIONS)if(option.productId.equals(productId))return option;
         return null;

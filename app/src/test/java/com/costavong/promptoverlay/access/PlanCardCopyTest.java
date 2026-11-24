@@ -14,8 +14,17 @@ public final class PlanCardCopyTest {
         for(String id:new String[]{"basic_lifetime","pro_lifetime"}){
             PlanCatalog.Entry lifetime=PlanCatalog.byId(id);
             assertFalse(lifetime.renewsAfterPurchase);
-            assertEquals("One-time payment · no renewal",PlanCardCopy.cadenceLabel(lifetime));
+            assertEquals("One-time purchase · no renewal",PlanCardCopy.cadenceLabel(lifetime));
         }
+    }
+
+    @Test public void basicTargetPriceIsClearlyUsDollarPreviewCopy(){
+        PlanCatalog.Entry basic=PlanCatalog.byId("basic_lifetime");
+        assertEquals("US$5.99",PlanCardCopy.previewPriceLabel(basic));
+        assertEquals("Development preview · not an active purchase offer.",
+                PlanCardCopy.previewAvailabilityLabel());
+        assertEquals("$4.99",PlanCatalog.byId("pro_monthly").targetUsd);
+        assertEquals("$39.99",PlanCatalog.byId("pro_lifetime").targetUsd);
     }
     @Test public void ninetyDayTrialHasNoCardOrAutoRenewal(){
         assertEquals(90,TrialOffer.TRIAL_DAYS);

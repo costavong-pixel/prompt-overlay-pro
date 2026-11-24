@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -24,6 +25,12 @@ import android.widget.PopupMenu;
 import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.TextView;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import java.util.List;
 import java.util.Locale;
@@ -48,10 +55,24 @@ public class ScriptLibraryActivity extends Activity {
         super.onCreate(savedInstanceState);
         preferences = getSharedPreferences("prompt_overlay", MODE_PRIVATE);
         currentScriptId = getIntent().getStringExtra(EXTRA_CURRENT_SCRIPT_ID);
+        configureSystemBars();
+        View screen = createScreen();
+        setContentView(screen);
+        ViewCompat.requestApplyInsets(screen);
+        refresh();
+    }
+
+    private void configureSystemBars() {
         getWindow().setStatusBarColor(SCREEN_BACKGROUND);
         getWindow().setNavigationBarColor(SCREEN_BACKGROUND);
-        setContentView(createScreen());
-        refresh();
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        WindowInsetsControllerCompat bars = WindowCompat.getInsetsController(
+                getWindow(), getWindow().getDecorView());
+        bars.setAppearanceLightStatusBars(false);
+        bars.setAppearanceLightNavigationBars(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
     }
 
     private View createScreen() {
@@ -61,7 +82,7 @@ public class ScriptLibraryActivity extends Activity {
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        scroll.setClipToPadding(false);
+        scroll.setClipToPadding(true);
         scroll.setBackgroundColor(SCREEN_BACKGROUND);
         root.addView(scroll, new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
@@ -168,6 +189,27 @@ public class ScriptLibraryActivity extends Activity {
                 FrameLayout.LayoutParams.WRAP_CONTENT, dp(54), Gravity.BOTTOM | Gravity.END);
         newScriptParams.setMargins(dp(18), dp(18), dp(18), dp(22));
         root.addView(newScript, newScriptParams);
+
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, windowInsets) -> {
+            Insets system = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            Insets gestures = windowInsets.getInsets(WindowInsetsCompat.Type.systemGestures());
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            int safeLeft = Math.max(system.left, gestures.left);
+            int safeRight = Math.max(system.right, gestures.right);
+            int systemBottom = Math.max(system.bottom, gestures.bottom);
+            int safeBottom = Math.max(systemBottom, ime.bottom);
+
+            scroll.setPadding(safeLeft, Math.max(system.top, dp(18)), safeRight, 0);
+            column.setPadding(dp(18), dp(18), dp(18), dp(96) + safeBottom);
+            FrameLayout.LayoutParams buttonParams =
+                    (FrameLayout.LayoutParams) newScript.getLayoutParams();
+            buttonParams.leftMargin = dp(18) + safeLeft;
+            buttonParams.rightMargin = dp(18) + safeRight;
+            buttonParams.bottomMargin = dp(22) + safeBottom;
+            newScript.setLayoutParams(buttonParams);
+            return windowInsets;
+        });
 
         return root;
     }

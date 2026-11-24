@@ -60,7 +60,7 @@ public final class ProFeedbackActivity extends Activity {
     }
 
     private int dp(float n){return Math.round(n*getResources().getDisplayMetrics().density);}
-    private String tr(String key){return ProStrings.t(this,key);}
+    private String tr(String key){return FeedbackStrings.t(this,key);}
     private GradientDrawable shape(int color,int radius){
         GradientDrawable d=new GradientDrawable();d.setColor(color);d.setCornerRadius(dp(radius));
         return d;
@@ -125,16 +125,16 @@ public final class ProFeedbackActivity extends Activity {
         independent.setTextColor(TEAL);full(root,independent,12);
 
         root.addView(label("Feature you tried",14,true));
-        String[] keys={"Teleprompter","Video editor","Captions","Export","Usability","Other"};
+        String[] keys={"Teleprompter","Script library","Import","Remote controls","Usability","Other"};
         String[] names=new String[keys.length];for(int i=0;i<keys.length;i++)names[i]=tr(keys[i]);
         topic=new Spinner(this);
         ArrayAdapter<String> adapter=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names);
         topic.setAdapter(adapter);topic.setBackground(shape(INPUT,12));
         topic.setMinimumHeight(dp(48));full(root,topic,10);
 
-        tried=field(root,"What did you try?","Example: Imported a 30-second video and trimmed it.",2);
+        tried=field(root,"What did you try?","Example: Saved a script and adjusted its scroll speed.",2);
         outcome=field(root,"What happened? What should improve?","Explain the result and what you expected.",3);
-        steps=field(root,"Steps to reproduce or an actionable suggestion","Example: Import video → Clips → Split, then export.",2);
+        steps=field(root,"Steps to reproduce or an actionable suggestion","Example: Open a script, start the overlay, and connect a remote.",2);
 
         link=field(root,"Share a video or screenshot link (optional)",
             "https://drive.google.com/... or another shareable link",1);
@@ -273,7 +273,7 @@ public final class ProFeedbackActivity extends Activity {
         try{evidenceLink=FeedbackEvidencePolicy.normalizeLink(link.getText().toString());}
         catch(IllegalArgumentException e){toast("Please enter an http(s) shareable link, or leave the link empty.");return;}
 
-        String[] keys={"Teleprompter","Video editor","Captions","Export","Usability","Other"};
+        String[] keys={"Teleprompter","Script library","Import","Remote controls","Usability","Other"};
         String feature=keys[topic.getSelectedItemPosition()];
         StringBuilder text=new StringBuilder();
         text.append("Prompt Overlay feedback\nFeature: ").append(feature)

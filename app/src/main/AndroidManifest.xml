@@ -19,8 +19,6 @@
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROCESSING" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <!-- Required by Google Play Console to configure one-time and subscription
          products. Checkout remains hard-disabled; this permission alone
          never charges users or enables purchase flows. -->
@@ -40,7 +38,6 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -48,18 +45,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".pro.ProActivity"
-            android:enabled="${proEnabled}"
-            android:exported="true"
-            android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <action android:name="android.intent.action.SEND_MULTIPLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="video/*" />
-            </intent-filter>
-        </activity>
         <!-- Read-only Play price discovery and a three-plan preview, no checkout. -->
         <activity android:name=".access.PlansActivity"
             android:exported="false" android:enabled="${proEnabled}" />
@@ -71,19 +56,9 @@
             android:exported="false"
             android:enabled="${proEnabled}"
             android:windowSoftInputMode="adjustResize" />
-        <service android:name=".pro.ProExportService" android:exported="false"
-            android:enabled="${proEnabled}"
-            android:foregroundServiceType="mediaProcessing|dataSync" />
-        <provider android:name="androidx.core.content.FileProvider"
-            android:enabled="${proEnabled}"
-            android:authorities="${applicationId}.profiles" android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/pro_paths" />
-        </provider>
         <activity
             android:name=".ScriptLibraryActivity"
             android:exported="false"
-            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
 
         <activity

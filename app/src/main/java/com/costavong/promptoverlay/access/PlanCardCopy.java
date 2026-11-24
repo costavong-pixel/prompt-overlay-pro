@@ -8,6 +8,16 @@ public final class PlanCardCopy {
         if(entry==null)throw new IllegalArgumentException("Plan is required");
         return entry.renewsAfterPurchase
             ?"Billed monthly after purchase · renews until canceled"
-            :"One-time payment · no renewal";
+            :"One-time purchase · no renewal";
+    }
+
+    /** A USD target label for preview only; never sourced from Play checkout. */
+    public static String previewPriceLabel(PlanCatalog.Entry entry){
+        if(entry==null)throw new IllegalArgumentException("Plan is required");
+        return "US"+entry.targetUsd;
+    }
+
+    public static String previewAvailabilityLabel(){
+        return "Development preview · not an active purchase offer.";
     }
 }

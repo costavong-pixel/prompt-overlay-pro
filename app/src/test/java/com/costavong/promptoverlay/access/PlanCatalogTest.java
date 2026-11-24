@@ -19,6 +19,15 @@ public final class PlanCatalogTest {
         assertNull(PlanCatalog.byId(null));
     }
 
+    @Test public void pricingPreviewShowsOnlyBasicAndKeepsAllPurchaseMetadata(){
+        assertEquals(1,PlanCatalog.previewDisplayOptions().size());
+        assertSame(PlanCatalog.byId("basic_lifetime"),
+                PlanCatalog.previewDisplayOptions().get(0));
+        assertEquals(3,PlanCatalog.options().size());
+        assertNotNull(PlanCatalog.byId("pro_monthly"));
+        assertNotNull(PlanCatalog.byId("pro_lifetime"));
+    }
+
     @Test public void lifetimeProductsAreOneTimeOnly(){
         PlanCatalog.Entry basic=PlanCatalog.byId("basic_lifetime");
         PlanCatalog.Entry pro=PlanCatalog.byId("pro_lifetime");
